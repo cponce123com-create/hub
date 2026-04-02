@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { db, invoicesTable, suppliersTable } from "@workspace/db";
-import { eq, and, gte, lte, ilike, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 const router = Router();
 
 router.get("/companies/:companyId/invoices", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const { status, supplierId, startDate, endDate, search } = req.query as Record<string, string>;
+    const { status, supplierId, startDate, endDate } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
 
     const conditions = [eq(invoicesTable.companyId, companyId)];
     if (status) conditions.push(eq(invoicesTable.status, status));
@@ -20,7 +22,9 @@ router.get("/companies/:companyId/invoices", async (req, res) => {
       .from(invoicesTable)
       .leftJoin(suppliersTable, eq(invoicesTable.supplierId, suppliersTable.id))
       .where(and(...conditions))
-      .orderBy(sql`${invoicesTable.createdAt} DESC`);
+      .orderBy(sql`${invoicesTable.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset);
 
     return res.json(invoices.map(({ invoice, supplierName }) => ({
       ...invoice,
@@ -69,6 +73,7 @@ router.get("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const invoiceId = parseInt(req.params.invoiceId);
+    if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
     const [result] = await db
       .select({ invoice: invoicesTable, supplierName: suppliersTable.name })
       .from(invoicesTable)
@@ -86,6 +91,7 @@ router.put("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const invoiceId = parseInt(req.params.invoiceId);
+    if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
     const body = req.body;
     const updates: Record<string, unknown> = {};
     if (body.supplierId !== undefined) updates.supplierId = body.supplierId;
@@ -113,6 +119,7 @@ router.delete("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const invoiceId = parseInt(req.params.invoiceId);
+    if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
     await db.delete(invoicesTable).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.companyId, companyId)));
     return res.json({ message: "Invoice deleted" });
   } catch (err) {

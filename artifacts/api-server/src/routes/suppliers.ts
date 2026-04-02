@@ -8,9 +8,11 @@ router.get("/companies/:companyId/suppliers", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const { search } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
     const conditions = [eq(suppliersTable.companyId, companyId)];
     if (search) conditions.push(ilike(suppliersTable.name, `%${search}%`));
-    const suppliers = await db.select().from(suppliersTable).where(and(...conditions)).orderBy(suppliersTable.name);
+    const suppliers = await db.select().from(suppliersTable).where(and(...conditions)).orderBy(suppliersTable.name).limit(limit).offset(offset);
     const result = await Promise.all(suppliers.map(async (s) => {
       const invRows = await db.select({ cnt: count(), total: sum(invoicesTable.amount) }).from(invoicesTable).where(eq(invoicesTable.supplierId, s.id));
       return {
@@ -43,6 +45,7 @@ router.get("/companies/:companyId/suppliers/:supplierId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const supplierId = parseInt(req.params.supplierId);
+    if (isNaN(supplierId)) return res.status(400).json({ error: "ID de proveedor inválido" });
     const supplier = await db.query.suppliersTable.findFirst({ where: and(eq(suppliersTable.id, supplierId), eq(suppliersTable.companyId, companyId)) });
     if (!supplier) return res.status(404).json({ error: "Not found" });
     const invRows = await db.select({ cnt: count(), total: sum(invoicesTable.amount) }).from(invoicesTable).where(eq(invoicesTable.supplierId, supplierId));
@@ -57,6 +60,7 @@ router.put("/companies/:companyId/suppliers/:supplierId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const supplierId = parseInt(req.params.supplierId);
+    if (isNaN(supplierId)) return res.status(400).json({ error: "ID de proveedor inválido" });
     const body = req.body;
     const [supplier] = await db.update(suppliersTable).set(body).where(and(eq(suppliersTable.id, supplierId), eq(suppliersTable.companyId, companyId))).returning();
     if (!supplier) return res.status(404).json({ error: "Not found" });
@@ -72,6 +76,7 @@ router.delete("/companies/:companyId/suppliers/:supplierId", async (req, res) =>
   try {
     const companyId = parseInt(req.params.companyId);
     const supplierId = parseInt(req.params.supplierId);
+    if (isNaN(supplierId)) return res.status(400).json({ error: "ID de proveedor inválido" });
     await db.delete(suppliersTable).where(and(eq(suppliersTable.id, supplierId), eq(suppliersTable.companyId, companyId)));
     return res.json({ message: "Supplier deleted" });
   } catch (err) {

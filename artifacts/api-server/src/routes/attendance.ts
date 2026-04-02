@@ -8,6 +8,8 @@ router.get("/companies/:companyId/attendance", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const { employeeId, startDate, endDate, area, status } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
 
     const conditions = [eq(attendanceTable.companyId, companyId)];
     if (employeeId) conditions.push(eq(attendanceTable.employeeId, parseInt(employeeId)));
@@ -20,7 +22,9 @@ router.get("/companies/:companyId/attendance", async (req, res) => {
       .from(attendanceTable)
       .leftJoin(employeesTable, eq(attendanceTable.employeeId, employeesTable.id))
       .where(and(...conditions))
-      .orderBy(sql`${attendanceTable.date} DESC`);
+      .orderBy(sql`${attendanceTable.date} DESC`)
+      .limit(limit)
+      .offset(offset);
 
     const filtered = area ? records.filter(r => r.area === area) : records;
 
@@ -78,6 +82,7 @@ router.put("/companies/:companyId/attendance/:attendanceId", async (req, res) =>
   try {
     const companyId = parseInt(req.params.companyId);
     const attendanceId = parseInt(req.params.attendanceId);
+    if (isNaN(attendanceId)) return res.status(400).json({ error: "ID de registro inválido" });
     const body = req.body;
     const updates: Record<string, unknown> = {};
     if (body.checkIn !== undefined) updates.checkIn = body.checkIn;
@@ -110,6 +115,7 @@ router.delete("/companies/:companyId/attendance/:attendanceId", async (req, res)
   try {
     const companyId = parseInt(req.params.companyId);
     const attendanceId = parseInt(req.params.attendanceId);
+    if (isNaN(attendanceId)) return res.status(400).json({ error: "ID de registro inválido" });
     await db.delete(attendanceTable).where(and(eq(attendanceTable.id, attendanceId), eq(attendanceTable.companyId, companyId)));
     return res.json({ message: "Record deleted" });
   } catch (err) {

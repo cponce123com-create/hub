@@ -7,8 +7,7 @@ const router = Router();
 router.get("/companies/:companyId/dashboard/summary", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const session = req.session as { userId?: number } | null;
-    const userId = session?.userId ?? 1;
+    const userId = req.session?.userId ?? 1;
     const today = new Date().toISOString().split("T")[0];
 
     // Finance metrics

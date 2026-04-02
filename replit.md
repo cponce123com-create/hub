@@ -54,16 +54,27 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - `/settings` — Company, profile, modules, roles configuration
 - `/login` — Authentication page
 
-### Auth
+### Auth & Security
 
-- Session-based (in-memory sessions + cookie `sessionId`)
-- `SESSION_SECRET` env var used as signing secret
-- Login checks: `password === "password"` OR `user.passwordHash === password`
+- **Sessions**: `express-session` + `connect-pg-simple` (PostgreSQL store, table `user_sessions`)
+- **Passwords**: bcrypt (cost factor 12) — all seed passwords hashed at startup
+- **Rate limiting**: max 10 login attempts per 15 minutes (express-rate-limit)
+- **Security headers**: helmet.js as first middleware
+- **CORS**: restricted to `CORS_ORIGIN` env var (default: `http://localhost:24710`)
+- **Trust proxy**: `app.set("trust proxy", 1)` for Replit's reverse proxy
+- **Cookie**: `httpOnly: true`, `sameSite: lax`, `secure: true` in production
+- **Session IDs**: `crypto.randomBytes(32)` — cryptographically secure
+- **requireAuth middleware**: all routes except `/auth/*` and `/health` require session
+- **requireCompany middleware**: validates companyId matches session companyId (IDOR protection)
+- **Param validation**: NaN checks on all numeric URL params
+- **Pagination**: all list endpoints support `limit` (max 200, default 50) and `offset`
+- **Employee search**: searches firstName, lastName, and documentId
 - Default demo user: `admin@mineraandina.pe` / `password`
+- Required env vars: `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGIN`, `PORT`
 
-### DB Schema (8 tables)
+### DB Schema (9 tables)
 
-`companies`, `users`, `employees`, `suppliers`, `invoices`, `attendance`, `documents`, `announcements` (+ `announcement_reads`)
+`companies`, `users`, `employees`, `suppliers`, `invoices`, `attendance`, `documents`, `announcements`, `announcement_reads`, `user_sessions` (express-session store)
 
 ### Theme
 

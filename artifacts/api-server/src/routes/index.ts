@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { requireAuth, requireCompany } from "../middlewares/requireAuth";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import companiesRouter from "./companies";
@@ -16,6 +17,10 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+
+router.use(requireAuth);
+router.use("/companies/:companyId", requireCompany);
+
 router.use(companiesRouter);
 router.use(usersRouter);
 router.use(employeesRouter);

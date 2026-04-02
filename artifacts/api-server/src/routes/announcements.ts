@@ -7,14 +7,15 @@ const router = Router();
 router.get("/companies/:companyId/announcements", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const { priority, area } = req.query as Record<string, string>;
-    const session = req.session as { userId?: number } | null;
-    const userId = session?.userId ?? 1;
+    const { priority } = req.query as Record<string, string>;
+    const userId = req.session?.userId ?? 1;
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
 
     const conditions = [eq(announcementsTable.companyId, companyId)];
     if (priority) conditions.push(eq(announcementsTable.priority, priority));
 
-    const announcements = await db.select().from(announcementsTable).where(and(...conditions)).orderBy(sql`${announcementsTable.createdAt} DESC`);
+    const announcements = await db.select().from(announcementsTable).where(and(...conditions)).orderBy(sql`${announcementsTable.createdAt} DESC`).limit(limit).offset(offset);
 
     const result = await Promise.all(announcements.map(async (a) => {
       const [{ value: readCount }] = await db.select({ value: count() }).from(announcementReadsTable).where(eq(announcementReadsTable.announcementId, a.id));
@@ -58,6 +59,7 @@ router.put("/companies/:companyId/announcements/:announcementId", async (req, re
   try {
     const companyId = parseInt(req.params.companyId);
     const announcementId = parseInt(req.params.announcementId);
+    if (isNaN(announcementId)) return res.status(400).json({ error: "ID de comunicado inválido" });
     const body = req.body;
     const updates: Record<string, unknown> = {};
     if (body.title !== undefined) updates.title = body.title;
@@ -79,6 +81,7 @@ router.delete("/companies/:companyId/announcements/:announcementId", async (req,
   try {
     const companyId = parseInt(req.params.companyId);
     const announcementId = parseInt(req.params.announcementId);
+    if (isNaN(announcementId)) return res.status(400).json({ error: "ID de comunicado inválido" });
     await db.delete(announcementReadsTable).where(eq(announcementReadsTable.announcementId, announcementId));
     await db.delete(announcementsTable).where(and(eq(announcementsTable.id, announcementId), eq(announcementsTable.companyId, companyId)));
     return res.json({ message: "Announcement deleted" });
@@ -91,8 +94,8 @@ router.delete("/companies/:companyId/announcements/:announcementId", async (req,
 router.post("/companies/:companyId/announcements/:announcementId/read", async (req, res) => {
   try {
     const announcementId = parseInt(req.params.announcementId);
-    const session = req.session as { userId?: number } | null;
-    const userId = session?.userId ?? 1;
+    if (isNaN(announcementId)) return res.status(400).json({ error: "ID de comunicado inválido" });
+    const userId = req.session?.userId ?? 1;
     const exists = await db.query.announcementReadsTable.findFirst({ where: and(eq(announcementReadsTable.announcementId, announcementId), eq(announcementReadsTable.userId, userId)) });
     if (!exists) {
       await db.insert(announcementReadsTable).values({ announcementId, userId });

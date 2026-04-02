@@ -8,6 +8,8 @@ router.get("/companies/:companyId/documents", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const { category, employeeId, search } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
 
     const conditions = [eq(documentsTable.companyId, companyId)];
     if (category) conditions.push(eq(documentsTable.category, category));
@@ -19,7 +21,9 @@ router.get("/companies/:companyId/documents", async (req, res) => {
       .from(documentsTable)
       .leftJoin(employeesTable, eq(documentsTable.employeeId, employeesTable.id))
       .where(and(...conditions))
-      .orderBy(sql`${documentsTable.createdAt} DESC`);
+      .orderBy(sql`${documentsTable.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset);
 
     return res.json(docs.map(({ doc, firstName, lastName }) => ({
       ...doc,
@@ -58,6 +62,7 @@ router.get("/companies/:companyId/documents/:documentId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const documentId = parseInt(req.params.documentId);
+    if (isNaN(documentId)) return res.status(400).json({ error: "ID de documento inválido" });
     const [result] = await db
       .select({ doc: documentsTable, firstName: employeesTable.firstName, lastName: employeesTable.lastName })
       .from(documentsTable)
@@ -75,6 +80,7 @@ router.delete("/companies/:companyId/documents/:documentId", async (req, res) =>
   try {
     const companyId = parseInt(req.params.companyId);
     const documentId = parseInt(req.params.documentId);
+    if (isNaN(documentId)) return res.status(400).json({ error: "ID de documento inválido" });
     await db.delete(documentsTable).where(and(eq(documentsTable.id, documentId), eq(documentsTable.companyId, companyId)));
     return res.json({ message: "Document deleted" });
   } catch (err) {

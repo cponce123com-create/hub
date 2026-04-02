@@ -1,0 +1,68 @@
+Fix all pre-production security and quality issues in this codebase. Here is the complete list, in order of priority:
+
+## 🔴 CRITICAL
+
+1. **Hash passwords with bcrypt**
+   - In `artifacts/api-server/src/routes/auth.ts`, replace the plain-text password check with bcrypt.compare()
+   - In `artifacts/api-server/src/routes/users.ts`, hash the password with bcrypt.hash() before inserting
+   - In `lib/db/src/lib/seed.ts`, hash all seed passwords with bcrypt before inserting
+   - Install bcrypt: `pnpm --filter @workspace/api-server add bcrypt` and `pnpm --filter @workspace/api-server add -D @types/bcrypt`
+
+2. **Add authentication middleware to ALL routes**
+   - Create `artifacts/api-server/src/middlewares/requireAuth.ts` that checks `req.session?.userId`, returns 401 if missing
+   - Apply this middleware to ALL routers in `artifacts/api-server/src/routes/index.ts`, EXCEPT `authRouter` and `healthRouter`
+
+3. **Fix IDOR: validate companyId against session**
+   - In every route that has `/companies/:companyId/...`, after parsing the companyId, verify that `companyId === req.session?.companyId`. If not, return 403 Forbidden.
+   - Apply this to: invoices.ts, employees.ts, suppliers.ts, attendance.ts, documents.ts, announcements.ts, users.ts, companies.ts, dashboard.ts, reports.ts
+
+4. **Use cryptographically secure session IDs**
+   - In `artifacts/api-server/src/app.ts`, replace all `Math.random().toString(36).slice(2)` with `require('crypto').randomBytes(32).toString('hex')`
+
+5. **Fix session cookie security**
+   - In `artifacts/api-server/src/app.ts`, change `secure: false` to `secure: process.env.NODE_ENV === 'production'` in all three cookie calls
+
+## 🟠 HIGH
+
+6. **Restrict CORS**
+   - In `artifacts/api-server/src/app.ts`, change `cors({ origin: true, credentials: true })` to use `CORS_ORIGIN` env var: `cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:24710', credentials: true })`
+
+7. **Add Zod input validation to all routes**
+   - In each route file (employees.ts, invoices.ts, suppliers.ts, attendance.ts, documents.ts, announcements.ts, users.ts), import the corresponding Zod schema from `@workspace/api-zod` and validate `req.body` before any DB operation. Return 400 with validation errors if invalid.
+
+8. **Add rate limiting to auth endpoints**
+   - Install: `pnpm --filter @workspace/api-server add express-rate-limit`
+   - In `artifacts/api-server/src/routes/auth.ts`, apply a rate limiter of max 10 requests per 15 minutes to the POST /auth/login endpoint
+
+9. **Add security headers with helmet**
+   - Install: `pnpm --filter @workspace/api-server add helmet`
+   - Import and apply `helmet()` as the first middleware in `artifacts/api-server/src/app.ts`
+
+10. **Persist sessions in PostgreSQL**
+    - Install: `pnpm --filter @workspace/api-server add connect-pg-simple express-session`
+    - Replace the in-memory `sessions` object in `app.ts` with `express-session` using `connect-pg-simple` as the store, connected to the same `DATABASE_URL`
+
+## 🟡 MEDIUM
+
+11. **Refactor duplicated session middleware**
+    - In `artifacts/api-server/src/app.ts`, remove the two conflicting session middlewares (the one patching `_res.json` and the `Object.defineProperty` one). Replace with a single clean middleware using helper functions `setSession(res, data)` and `destroySession(req, res)`.
+
+12. **Validate numeric params**
+    - In every route that uses `parseInt(req.params.companyId)` or `parseInt(req.params.id)`, add a check: `if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid id' })` — apply to all route files
+
+13. **Add pagination to list endpoints**
+    - In employees.ts, invoices.ts, suppliers.ts, attendance.ts, documents.ts, announcements.ts: read `limit` and `offset` from query params (default limit: 50, max: 200), apply `.limit()` and `.offset()` to all list queries
+
+14. **Fix employee search**
+    - In `artifacts/api-server/src/routes/employees.ts`, the search filter only checks `firstName`. Change it to also search `lastName` and `documentId` using an `or()` condition from drizzle-orm
+
+15. **Add .env.example**
+    - Create a `.env.example` file at the root with all required variables:
+  DATABASE_URL=
+  SESSION_SECRET=
+  NODE_ENV=development
+  CORS_ORIGIN=http://localhost:24710
+  PORT=8080
+    - In `app.ts`, if `SESSION_SECRET` is undefined in production (`NODE_ENV === 'production'`), throw an error and exit
+
+After all changes, run `pnpm run typecheck` to confirm there are no TypeScript errors.

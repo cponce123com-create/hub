@@ -1,4 +1,5 @@
 import { db } from "@workspace/db";
+import bcrypt from "bcrypt";
 import {
   companiesTable,
   usersTable,
@@ -13,6 +14,8 @@ import {
 export async function seedIfEmpty() {
   const existing = await db.query.companiesTable.findFirst();
   if (existing) return;
+
+  const passwordHash = await bcrypt.hash("password", 12);
 
   const [company] = await db
     .insert(companiesTable)
@@ -33,21 +36,21 @@ export async function seedIfEmpty() {
       companyId: company.id,
       email: "admin@mineraandina.pe",
       name: "Carlos Mendoza",
-      passwordHash: "password",
+      passwordHash,
       role: "admin",
     },
     {
       companyId: company.id,
       email: "rrhh@mineraandina.pe",
       name: "Ana Torres",
-      passwordHash: "password",
+      passwordHash,
       role: "hr",
     },
     {
       companyId: company.id,
       email: "finanzas@mineraandina.pe",
       name: "Luis García",
-      passwordHash: "password",
+      passwordHash,
       role: "finance",
     },
   ]);

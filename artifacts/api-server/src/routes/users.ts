@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 const router = Router();
 
@@ -21,8 +22,12 @@ router.post("/companies/:companyId/users", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const { email, name, password, role } = req.body;
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: "email, name y password son requeridos" });
+    }
+    const passwordHash = await bcrypt.hash(password, 12);
     const [user] = await db.insert(usersTable).values({
-      companyId, email, name, passwordHash: password || "password", role: role || "employee", isActive: true,
+      companyId, email, name, passwordHash, role: role || "employee", isActive: true,
     }).returning();
     return res.status(201).json({ id: user.id, email: user.email, name: user.name, role: user.role, companyId: user.companyId, isActive: user.isActive, createdAt: user.createdAt.toISOString() });
   } catch (err) {

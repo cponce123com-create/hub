@@ -1,102 +1,75 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import pinoHttp from "pino-http";
+import { randomBytes } from "crypto";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
-// Simple in-memory session
-declare module "express" {
-  interface Request {
-    session: { userId?: number; companyId?: number } | null;
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+    companyId?: number;
   }
 }
 
-const sessions: Record<string, { userId: number; companyId: number }> = {};
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  logger.error("SESSION_SECRET must be set in production. Exiting.");
+  process.exit(1);
+}
+
+const PgStore = connectPgSimple(session);
 
 const app: Express = express();
+
+app.set("trust proxy", 1);
+
+app.use(helmet());
 
 app.use(
   pinoHttp({
     logger,
     serializers: {
       req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
+        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
       },
       res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
+        return { statusCode: res.statusCode };
       },
     },
   }),
 );
-app.use(cors({ origin: true, credentials: true }));
-app.use(cookieParser(process.env.SESSION_SECRET || "controlhub-secret-key"));
+
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:24710",
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session middleware
-app.use((req, _res, next) => {
-  const sessionId = req.cookies?.sessionId;
-  if (sessionId && sessions[sessionId]) {
-    req.session = sessions[sessionId];
-  } else {
-    req.session = null;
-  }
-  // Allow setting session
-  const originalJson = _res.json.bind(_res);
-  _res.json = function (body) {
-    if (req.session && !req.cookies?.sessionId) {
-      const sid = Math.random().toString(36).slice(2);
-      sessions[sid] = req.session as { userId: number; companyId: number };
-      _res.cookie("sessionId", sid, { httpOnly: true, secure: false, sameSite: "lax" });
-    }
-    return originalJson(body);
-  };
-  next();
-});
-
-// Patch session setter
-app.use((req, res, next) => {
-  const setSession = (val: { userId: number; companyId: number } | null) => {
-    if (val) {
-      const sid = Math.random().toString(36).slice(2);
-      sessions[sid] = val;
-      res.cookie("sessionId", sid, { httpOnly: true, secure: false, sameSite: "lax" });
-    } else {
-      const sessionId = req.cookies?.sessionId;
-      if (sessionId) {
-        delete sessions[sessionId];
-        res.clearCookie("sessionId");
-      }
-    }
-    req.session = val;
-  };
-  Object.defineProperty(req, "session", {
-    get() { return this._session ?? null; },
-    set(val) {
-      if (val && val.userId) {
-        const sid = Math.random().toString(36).slice(2);
-        sessions[sid] = val;
-        res.cookie("sessionId", sid, { httpOnly: true, secure: false, sameSite: "lax" });
-      } else if (val === null) {
-        const sessionId = req.cookies?.sessionId;
-        if (sessionId) {
-          delete sessions[sessionId];
-          res.clearCookie("sessionId");
-        }
-      }
-      this._session = val;
+app.use(
+  session({
+    store: new PgStore({
+      conString: process.env.DATABASE_URL,
+      tableName: "user_sessions",
+    }),
+    secret: process.env.SESSION_SECRET || "controlhub-dev-secret-change-in-prod",
+    resave: false,
+    saveUninitialized: false,
+    genid: () => randomBytes(32).toString("hex"),
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     },
-    configurable: true,
-  });
-  next();
-});
+  }),
+);
 
 app.use("/api", router);
 

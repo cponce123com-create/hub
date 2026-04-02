@@ -1,14 +1,24 @@
 import { Router } from "express";
 import { db, usersTable, companiesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
 
-router.post("/auth/login", async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Intenta de nuevo en 15 minutos." },
+});
+
+router.post("/auth/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
+      return res.status(400).json({ error: "Correo y contraseña son requeridos" });
     }
 
     const user = await db.query.usersTable.findFirst({
@@ -16,13 +26,12 @@ router.post("/auth/login", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    // Simple password check (demo: password is "password")
-    const valid = password === "password" || user.passwordHash === password;
+    const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
     const company = await db.query.companiesTable.findFirst({
@@ -30,10 +39,14 @@ router.post("/auth/login", async (req, res) => {
     });
 
     if (!company) {
-      return res.status(404).json({ error: "Company not found" });
+      return res.status(404).json({ error: "Empresa no encontrada" });
     }
 
-    req.session = { userId: user.id, companyId: user.companyId };
+    req.session.userId = user.id;
+    req.session.companyId = user.companyId;
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve())),
+    );
 
     return res.json({
       user: {
@@ -62,28 +75,31 @@ router.post("/auth/login", async (req, res) => {
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.post("/auth/logout", (req, res) => {
-  req.session = null;
-  return res.json({ message: "Logged out" });
+  req.session.destroy((err) => {
+    if (err) req.log.error(err);
+    res.clearCookie("connect.sid");
+    return res.json({ message: "Sesión cerrada" });
+  });
 });
 
 router.get("/auth/me", async (req, res) => {
   try {
-    const session = req.session as { userId?: number; companyId?: number } | null;
-    if (!session?.userId) {
-      return res.status(401).json({ error: "Not authenticated" });
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "No autenticado" });
     }
 
     const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.id, session.userId),
+      where: eq(usersTable.id, userId),
     });
 
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({ error: "Usuario no encontrado" });
     }
 
     const company = await db.query.companiesTable.findFirst({
@@ -101,7 +117,7 @@ router.get("/auth/me", async (req, res) => {
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

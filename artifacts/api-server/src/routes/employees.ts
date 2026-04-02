@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, employeesTable, attendanceTable, documentsTable, announcementsTable, announcementReadsTable } from "@workspace/db";
-import { eq, and, ilike, count, sql } from "drizzle-orm";
+import { db, employeesTable, attendanceTable, documentsTable, announcementsTable } from "@workspace/db";
+import { eq, and, ilike, or, count, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -8,15 +8,23 @@ router.get("/companies/:companyId/employees", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const { area, status, search } = req.query as Record<string, string>;
-
-    let query = db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId)).$dynamic();
+    const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
+    const offset = parseInt((req.query.offset as string) || "0");
 
     const conditions = [eq(employeesTable.companyId, companyId)];
     if (area) conditions.push(eq(employeesTable.area, area));
     if (status) conditions.push(eq(employeesTable.status, status));
-    if (search) conditions.push(ilike(employeesTable.firstName, `%${search}%`));
+    if (search) {
+      conditions.push(
+        or(
+          ilike(employeesTable.firstName, `%${search}%`),
+          ilike(employeesTable.lastName, `%${search}%`),
+          ilike(employeesTable.documentId, `%${search}%`),
+        )!,
+      );
+    }
 
-    const employees = await db.select().from(employeesTable).where(and(...conditions)).orderBy(employeesTable.firstName);
+    const employees = await db.select().from(employeesTable).where(and(...conditions)).orderBy(employeesTable.firstName).limit(limit).offset(offset);
 
     return res.json(employees.map(e => ({
       ...e,
@@ -62,6 +70,7 @@ router.get("/companies/:companyId/employees/:employeeId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const employeeId = parseInt(req.params.employeeId);
+    if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
 
     const employee = await db.query.employeesTable.findFirst({
       where: and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId)),
@@ -105,6 +114,7 @@ router.put("/companies/:companyId/employees/:employeeId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const employeeId = parseInt(req.params.employeeId);
+    if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
     const body = req.body;
     const [employee] = await db.update(employeesTable).set({
       firstName: body.firstName, lastName: body.lastName, position: body.position,
@@ -125,6 +135,7 @@ router.delete("/companies/:companyId/employees/:employeeId", async (req, res) =>
   try {
     const companyId = parseInt(req.params.companyId);
     const employeeId = parseInt(req.params.employeeId);
+    if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
     await db.delete(employeesTable).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId)));
     return res.json({ message: "Employee deleted" });
   } catch (err) {
