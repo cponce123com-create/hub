@@ -49,7 +49,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Trash2, Edit, FileText } from "lucide-react";
+import { Plus, Search, Trash2, Edit, FileText, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
@@ -108,11 +109,21 @@ export default function Invoices() {
   const [form, setForm] = useState<InvoiceForm>(emptyForm);
 
   const { data: invoices, isLoading } = useListInvoices(companyId, {
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    search: search || undefined,
+    query: {
+      enabled: !!companyId,
+      queryKey: getListInvoicesQueryKey(companyId)
+    }
   });
 
-  const { data: suppliers } = useListSuppliers(companyId);
+  const filteredInvoices = invoices?.filter(inv => {
+    const matchStatus = statusFilter === "all" || inv.status === statusFilter;
+    const matchSearch = search ? inv.invoiceNumber.toLowerCase().includes(search.toLowerCase()) || inv.supplierName.toLowerCase().includes(search.toLowerCase()) : true;
+    return matchStatus && matchSearch;
+  });
+
+  const { data: suppliers } = useListSuppliers(companyId, {
+    query: { enabled: !!companyId }
+  });
 
   const createMutation = useCreateInvoice({
     mutation: {
@@ -120,7 +131,7 @@ export default function Invoices() {
         qc.invalidateQueries({ queryKey: getListInvoicesQueryKey(companyId) });
         setShowCreate(false);
         setForm(emptyForm);
-        toast({ title: "Factura creada correctamente" });
+        toast({ title: "Factura registrada", description: "La factura se ha guardado correctamente." });
       },
     },
   });
@@ -130,7 +141,7 @@ export default function Invoices() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListInvoicesQueryKey(companyId) });
         setEditInvoice(null);
-        toast({ title: "Factura actualizada" });
+        toast({ title: "Factura actualizada", description: "Los cambios se han guardado." });
       },
     },
   });
@@ -140,14 +151,14 @@ export default function Invoices() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListInvoicesQueryKey(companyId) });
         setDeleteId(null);
-        toast({ title: "Factura eliminada" });
+        toast({ title: "Factura eliminada", description: "El registro ha sido eliminado." });
       },
     },
   });
 
   const handleSubmit = () => {
     if (!form.supplierId || !form.invoiceNumber || !form.amount) {
-      toast({ title: "Completa los campos requeridos", variant: "destructive" });
+      toast({ title: "Faltan datos", description: "Completa los campos obligatorios.", variant: "destructive" });
       return;
     }
     const data = {
@@ -156,8 +167,8 @@ export default function Invoices() {
       issueDate: form.issueDate,
       dueDate: form.dueDate || form.issueDate,
       amount: parseFloat(form.amount),
-      currency: form.currency,
-      status: form.status,
+      currency: form.currency as any,
+      status: form.status as any,
       category: form.category || undefined,
       costCenter: form.costCenter || undefined,
       notes: form.notes || undefined,
@@ -169,7 +180,7 @@ export default function Invoices() {
     }
   };
 
-  const openEdit = (invoice: typeof invoices extends Array<infer T> ? T : never) => {
+  const openEdit = (invoice: NonNullable<typeof invoices>[number]) => {
     setForm({
       supplierId: String(invoice.supplierId),
       invoiceNumber: invoice.invoiceNumber,
@@ -187,117 +198,139 @@ export default function Invoices() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Facturas</h1>
-            <p className="text-muted-foreground text-sm mt-1">Gestiona facturas por pagar y pagadas</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturas</h1>
+            <p className="text-muted-foreground mt-1 text-base">Control de cuentas por pagar y pagadas.</p>
           </div>
-          <Button onClick={() => { setForm(emptyForm); setEditInvoice(null); setShowCreate(true); }} data-testid="button-create-invoice">
-            <Plus className="w-4 h-4 mr-2" /> Nueva Factura
+          <Button onClick={() => { setForm(emptyForm); setEditInvoice(null); setShowCreate(true); }} className="shadow-lg shadow-primary/20" data-testid="button-create-invoice">
+            <Plus className="w-5 h-5 mr-2" /> Nueva Factura
           </Button>
         </div>
 
-        <div className="flex gap-3 items-center">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-4 items-center bg-card p-4 rounded-xl border border-border/40 shadow-sm">
+          <div className="relative flex-1 w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar facturas..."
-              className="pl-9"
+              placeholder="Buscar por N° factura o proveedor..."
+              className="pl-9 h-10 bg-muted/50 border-border/50"
               value={search}
               onChange={e => setSearch(e.target.value)}
               data-testid="input-search-invoices"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40" data-testid="select-status-filter">
+            <SelectTrigger className="w-full sm:w-[200px] h-10 bg-muted/50 border-border/50" data-testid="select-status-filter">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
               <SelectItem value="pending">Pendiente</SelectItem>
               <SelectItem value="paid">Pagada</SelectItem>
               <SelectItem value="overdue">Vencida</SelectItem>
-              <SelectItem value="cancelled">Anulada</SelectItem>
               <SelectItem value="scheduled">Programada</SelectItem>
+              <SelectItem value="observed">Observada</SelectItem>
+              <SelectItem value="cancelled">Anulada</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="rounded-lg border border-border/60 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/60 hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-medium">N. Factura</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Proveedor</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Emision</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Vencimiento</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-right">Monto</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
-                <TableHead className="text-muted-foreground font-medium">Categoria</TableHead>
-                <TableHead className="w-20"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-border/60">
-                    {Array.from({ length: 8 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : !invoices?.length ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p>No hay facturas registradas</p>
-                  </TableCell>
+        <div className="rounded-xl border border-border/40 overflow-hidden bg-card shadow-sm">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent bg-muted/20">
+                  <TableHead className="font-semibold text-muted-foreground h-12">N° Factura</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Proveedor</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Emisión</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Vencimiento</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Categoría</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Estado</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground text-right">Monto</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
-              ) : (
-                invoices.map(inv => (
-                  <TableRow key={inv.id} className="border-border/60" data-testid={`row-invoice-${inv.id}`}>
-                    <TableCell className="font-mono text-sm">{inv.invoiceNumber}</TableCell>
-                    <TableCell className="font-medium">{inv.supplierName}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{inv.issueDate}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{inv.dueDate}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {inv.currency} {Number(inv.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusColors[inv.status] ?? ""}`}>
-                        {statusLabels[inv.status] ?? inv.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{inv.category ?? "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(inv)} data-testid={`button-edit-invoice-${inv.id}`}>
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(inv.id)} data-testid={`button-delete-invoice-${inv.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <TableRow key={i} className="border-border/40">
+                      {Array.from({ length: 8 }).map((_, j) => (
+                        <TableCell key={j} className="py-4"><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : !filteredInvoices?.length ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-64 text-center">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <FileText className="w-12 h-12 mb-4 opacity-20" />
+                        <p className="text-lg font-medium text-foreground">No se encontraron facturas</p>
+                        <p className="text-sm mt-1">Ajusta los filtros o registra una nueva factura.</p>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredInvoices.map(inv => (
+                    <TableRow key={inv.id} className="border-border/40 hover:bg-muted/30 transition-colors group" data-testid={`row-invoice-${inv.id}`}>
+                      <TableCell className="font-mono text-sm font-medium">{inv.invoiceNumber}</TableCell>
+                      <TableCell className="font-medium">{inv.supplierName}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{inv.issueDate}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{inv.dueDate}</TableCell>
+                      <TableCell>
+                        {inv.category ? (
+                          <span className="text-xs font-medium px-2 py-1 rounded bg-secondary text-secondary-foreground">
+                            {inv.category}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors[inv.status] ?? ""}`}>
+                          {statusLabels[inv.status] ?? inv.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-foreground">
+                        {inv.currency} {Number(inv.amount).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => openEdit(inv)} className="cursor-pointer">
+                              <Edit className="w-4 h-4 mr-2" /> Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setDeleteId(inv.id)} className="cursor-pointer text-destructive focus:text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Create/Edit Dialog */}
         <Dialog open={showCreate || !!editInvoice} onOpenChange={open => { if (!open) { setShowCreate(false); setEditInvoice(null); } }}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editInvoice ? "Editar Factura" : "Nueva Factura"}</DialogTitle>
+          <DialogContent className="sm:max-w-2xl bg-card border-border/40 shadow-2xl">
+            <DialogHeader className="border-b border-border/40 pb-4">
+              <DialogTitle className="text-xl">{editInvoice ? "Editar Factura" : "Registrar Nueva Factura"}</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-2">
-              <div className="col-span-2">
-                <Label>Proveedor *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 py-4">
+              <div className="md:col-span-2">
+                <Label className="text-foreground/80 font-medium">Proveedor *</Label>
                 <Select value={form.supplierId} onValueChange={v => setForm(f => ({ ...f, supplierId: v }))}>
-                  <SelectTrigger data-testid="select-invoice-supplier">
+                  <SelectTrigger className="mt-1.5 h-10" data-testid="select-invoice-supplier">
                     <SelectValue placeholder="Seleccionar proveedor" />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,62 +341,65 @@ export default function Invoices() {
                 </Select>
               </div>
               <div>
-                <Label>N. Factura *</Label>
-                <Input value={form.invoiceNumber} onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="F001-00001" data-testid="input-invoice-number" />
+                <Label className="text-foreground/80 font-medium">N° de Factura *</Label>
+                <Input value={form.invoiceNumber} onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="E.g. F001-00045" className="mt-1.5 h-10" data-testid="input-invoice-number" />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label className="text-foreground/80 font-medium">Monto *</Label>
+                  <Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" className="mt-1.5 h-10" data-testid="input-invoice-amount" />
+                </div>
+                <div className="w-24">
+                  <Label className="text-foreground/80 font-medium">Moneda</Label>
+                  <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
+                    <SelectTrigger className="mt-1.5 h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PEN">PEN</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
-                <Label>Monto *</Label>
-                <Input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" data-testid="input-invoice-amount" />
+                <Label className="text-foreground/80 font-medium">Fecha de Emisión *</Label>
+                <Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} className="mt-1.5 h-10" data-testid="input-invoice-issue-date" />
               </div>
               <div>
-                <Label>Fecha Emision</Label>
-                <Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} data-testid="input-invoice-issue-date" />
+                <Label className="text-foreground/80 font-medium">Fecha de Vencimiento</Label>
+                <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="mt-1.5 h-10" data-testid="input-invoice-due-date" />
               </div>
               <div>
-                <Label>Fecha Vencimiento</Label>
-                <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} data-testid="input-invoice-due-date" />
-              </div>
-              <div>
-                <Label>Moneda</Label>
-                <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PEN">PEN - Soles</SelectItem>
-                    <SelectItem value="USD">USD - Dolares</SelectItem>
-                    <SelectItem value="EUR">EUR - Euros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Estado</Label>
+                <Label className="text-foreground/80 font-medium">Estado *</Label>
                 <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger data-testid="select-invoice-status"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1.5 h-10" data-testid="select-invoice-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pendiente</SelectItem>
                     <SelectItem value="paid">Pagada</SelectItem>
                     <SelectItem value="overdue">Vencida</SelectItem>
-                    <SelectItem value="cancelled">Anulada</SelectItem>
                     <SelectItem value="scheduled">Programada</SelectItem>
+                    <SelectItem value="observed">Observada</SelectItem>
+                    <SelectItem value="cancelled">Anulada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Categoria</Label>
-                <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Servicios, Materiales..." data-testid="input-invoice-category" />
+                <Label className="text-foreground/80 font-medium">Categoría</Label>
+                <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Ej. Servicios, Materiales" className="mt-1.5 h-10" data-testid="input-invoice-category" />
               </div>
-              <div>
-                <Label>Centro de Costo</Label>
-                <Input value={form.costCenter} onChange={e => setForm(f => ({ ...f, costCenter: e.target.value }))} data-testid="input-invoice-cost-center" />
+              <div className="md:col-span-2">
+                <Label className="text-foreground/80 font-medium">Centro de Costos</Label>
+                <Input value={form.costCenter} onChange={e => setForm(f => ({ ...f, costCenter: e.target.value }))} placeholder="Opcional" className="mt-1.5 h-10" data-testid="input-invoice-cost-center" />
               </div>
-              <div className="col-span-2">
-                <Label>Observaciones</Label>
-                <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} data-testid="textarea-invoice-notes" />
+              <div className="md:col-span-2">
+                <Label className="text-foreground/80 font-medium">Observaciones Adicionales</Label>
+                <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} className="mt-1.5 resize-none bg-muted/30" placeholder="Detalles extra sobre esta factura..." data-testid="textarea-invoice-notes" />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setShowCreate(false); setEditInvoice(null); }}>Cancelar</Button>
-              <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-submit-invoice">
-                {editInvoice ? "Guardar cambios" : "Crear factura"}
+            <DialogFooter className="border-t border-border/40 pt-4">
+              <Button variant="ghost" onClick={() => { setShowCreate(false); setEditInvoice(null); }}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending} className="shadow-lg shadow-primary/20" data-testid="button-submit-invoice">
+                {editInvoice ? "Guardar Cambios" : "Registrar Factura"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -371,15 +407,17 @@ export default function Invoices() {
 
         {/* Delete confirm */}
         <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
-          <AlertDialogContent>
+          <AlertDialogContent className="bg-card border-border/40">
             <AlertDialogHeader>
-              <AlertDialogTitle>Eliminar factura</AlertDialogTitle>
-              <AlertDialogDescription>Esta accion no se puede deshacer.</AlertDialogDescription>
+              <AlertDialogTitle className="text-xl">¿Eliminar registro?</AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                Estás a punto de eliminar esta factura permanentemente. Esta acción no se puede deshacer y los reportes financieros se actualizarán.
+              </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="mt-4">
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate({ companyId, invoiceId: deleteId })} className="bg-destructive hover:bg-destructive/90">
-                Eliminar
+              <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate({ companyId, invoiceId: deleteId })} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20">
+                Sí, eliminar factura
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

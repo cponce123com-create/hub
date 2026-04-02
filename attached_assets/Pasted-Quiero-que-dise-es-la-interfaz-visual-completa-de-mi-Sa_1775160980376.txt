@@ -1,0 +1,584 @@
+Quiero que diseñes la interfaz visual completa de mi SaaS empresarial híbrido, pantalla por pantalla, con un estilo moderno, corporativo, limpio, premium, intuitivo y altamente funcional.
+
+Este SaaS está pensado para unir en una sola plataforma:
+
+administración
+finanzas
+cuentas por pagar
+proveedores
+RRHH
+tareo
+asistencia
+documentos
+comunicados
+reportes
+panel gerencial
+
+No quiero una interfaz genérica ni una plantilla básica.
+Quiero una experiencia visual que se sienta como un producto SaaS real, de nivel comercial, listo para venderse a empresas.
+
+La plataforma debe verse como una mezcla moderna entre:
+
+ERP corporativo
+gestor documental
+plataforma de RRHH
+panel administrativo premium
+
+Pero debe mantenerse:
+
+simple de entender
+rápida de usar
+ordenada
+elegante
+profesional
+1. OBJETIVO DEL DISEÑO
+
+Quiero que diseñes todo el sistema visual, definiendo:
+
+estructura de navegación
+layout principal
+sidebar
+header
+dashboard
+tablas
+formularios
+modales
+filtros
+vistas detalle
+paneles de resumen
+estados vacíos
+alertas
+notificaciones
+responsive móvil y desktop
+
+Cada pantalla debe tener identidad visual consistente y profesional.
+
+No quiero solo wireframes.
+Quiero una interfaz bien pensada, con jerarquía visual, componentes reutilizables y UX empresarial moderna.
+
+2. ESTILO VISUAL GENERAL
+El estilo debe transmitir:
+confianza
+orden
+poder de control
+claridad
+eficiencia
+tecnología moderna
+producto premium
+Referencia estética:
+SaaS corporativo moderno
+dashboards limpios
+tarjetas con sombras suaves
+interfaz elegante
+navegación clara
+tipografía legible
+colores sobrios pero refinados
+excelente espaciado
+sensación de sistema serio
+No quiero:
+colores chillones sin criterio
+diseño infantil
+exceso de elementos
+pantallas saturadas
+formularios pesados
+tablas feas
+look antiguo tipo sistema de escritorio viejo
+3. LÍNEA GRÁFICA
+Quiero que propongas una línea visual con:
+paleta principal corporativa
+color primario serio y moderno
+colores secundarios elegantes
+color de éxito
+color de advertencia
+color de error
+color de información
+Debe haber consistencia en:
+botones
+iconos
+tarjetas
+inputs
+tablas
+badges
+pestañas
+modales
+menús desplegables
+Estilo recomendado:
+bordes redondeados modernos
+sombras suaves
+tarjetas limpias
+separación visual correcta
+tipografía moderna
+íconos profesionales
+microinteracciones elegantes
+4. ESTRUCTURA GLOBAL DE LA APP
+
+Diseña el layout principal del sistema.
+
+Quiero:
+Sidebar lateral fijo
+
+Con:
+
+logo de empresa
+nombre del sistema
+módulos agrupados
+iconos elegantes
+indicador del módulo activo
+opción de contraer sidebar
+versión responsive para móvil
+Header superior
+
+Con:
+
+buscador global
+notificaciones
+accesos rápidos
+selector de empresa
+perfil de usuario
+menú de cuenta
+breadcrumb o ruta actual
+Área principal de contenido
+limpia
+bien espaciada
+adaptable
+con títulos claros
+acciones principales visibles
+5. PANTALLAS QUE QUIERO DISEÑADAS
+
+Quiero que diseñes visualmente todas estas pantallas.
+
+A. LOGIN / ACCESO
+
+Diseña una pantalla de login moderna y elegante.
+
+Debe incluir:
+
+branding del SaaS
+fondo moderno o patrón tecnológico sutil
+formulario de acceso
+correo / usuario
+contraseña
+botón ingresar
+recuperar contraseña
+mensaje de seguridad
+opción visual profesional
+
+Debe sentirse premium, no genérica.
+
+B. DASHBOARD PRINCIPAL
+
+Diseña un dashboard ejecutivo y atractivo.
+
+Debe incluir:
+
+tarjetas KPI
+facturas por pagar
+facturas vencidas
+pagos recientes
+empleados activos
+asistencia del día
+alertas
+documentos pendientes
+comunicados recientes
+actividad reciente
+resumen por módulos
+gráficos claros
+accesos rápidos
+
+Quiero que el dashboard se vea útil de verdad, no decorativo.
+
+Debe ser una mezcla entre:
+
+tablero financiero
+panel RRHH
+centro de control empresarial
+C. MÓDULO DE FACTURAS
+
+Diseña estas vistas:
+
+1. Lista de facturas
+tabla moderna
+filtros arriba
+chips de estado
+buscador
+rango de fechas
+proveedor
+estado
+vencimiento
+acciones rápidas
+2. Crear factura
+formulario limpio
+secciones claras
+carga de archivo
+campos ordenados
+selector de proveedor
+monto
+fecha de emisión
+fecha de vencimiento
+estado
+observaciones
+3. Vista detalle de factura
+resumen principal
+datos importantes
+timeline de cambios
+archivos adjuntos
+responsable
+historial
+botones de acción
+cambiar estado
+descargar adjuntos
+
+Quiero que la experiencia se vea seria y ejecutiva.
+
+D. MÓDULO DE PROVEEDORES
+
+Diseña:
+
+listado de proveedores
+ficha detalle de proveedor
+historial de facturas
+información de contacto
+alertas relacionadas
+resumen financiero del proveedor
+
+Debe verse ordenado y muy útil para administración.
+
+E. MÓDULO DE EMPLEADOS / RRHH
+
+Diseña:
+
+1. Listado de empleados
+cards o tabla avanzada
+foto opcional
+nombre
+cargo
+área
+sede
+estado laboral
+acciones rápidas
+2. Ficha completa del empleado
+
+Debe verse como un expediente digital profesional.
+
+Incluir:
+
+cabecera con datos del trabajador
+pestañas internas
+documentos
+tareos
+asistencia
+incidencias
+comunicados
+historial
+archivos adjuntos
+3. Crear/editar empleado
+formulario ordenado por bloques
+datos personales
+datos laborales
+contacto
+documentos
+observaciones
+
+Quiero una experiencia moderna, tipo legajo digital premium.
+
+F. MÓDULO DE TAREO Y ASISTENCIA
+
+Diseña:
+
+1. Vista diaria de asistencia
+tabla clara
+estados con color
+acciones rápidas
+filtros por área y fecha
+2. Registro de tareo
+formulario rápido
+trabajador
+fecha
+turno
+horas
+observaciones
+responsable
+3. Vista resumen semanal/mensual
+tablas
+gráficos
+total de horas
+horas extra
+faltas
+tardanzas
+
+Debe sentirse práctico y muy operativo.
+
+G. MÓDULO DE DOCUMENTOS
+
+Quiero una interfaz documental potente y ordenada.
+
+Diseña:
+
+listado de documentos
+filtros por categoría
+filtros por módulo
+vista previa
+subida de documentos
+cards o tabla
+clasificación
+etiquetas
+historial
+adjuntos
+
+Debe parecer una mezcla entre:
+
+gestor documental
+archivos corporativos
+orden administrativo
+H. MÓDULO DE COMUNICADOS
+
+Diseña:
+
+1. Muro de comunicados
+tarjetas elegantes
+prioridad visual
+fecha
+autor
+destinatarios
+adjuntos
+botón ver detalle
+2. Crear comunicado
+editor limpio
+asunto
+mensaje
+prioridad
+destinatarios
+área
+sede
+adjuntos
+3. Vista detalle
+lectura cómoda
+archivos
+confirmación de lectura
+historial de lectura si aplica
+
+Debe verse muy corporativo.
+
+I. MÓDULO DE REPORTES
+
+Diseña una sección de reportes ejecutivos.
+
+Debe incluir:
+
+tarjetas resumen
+gráficos limpios
+tablas comparativas
+filtros avanzados
+exportación
+diseño ejecutivo
+
+Quiero que esta pantalla se sienta “gerencial”.
+
+J. CONFIGURACIÓN
+
+Diseña una sección de configuración moderna y bien organizada.
+
+Debe incluir:
+
+datos de empresa
+logo
+moneda
+áreas
+sedes
+cargos
+usuarios
+roles
+permisos
+módulos activos
+tipos de documento
+estados personalizados
+
+Debe verse ordenada por categorías con navegación cómoda.
+
+6. COMPONENTES VISUALES QUE QUIERO DEFINIDOS
+
+Quiero que diseñes y mantengas consistencia en estos componentes:
+
+botones primarios
+botones secundarios
+botones de peligro
+inputs
+selects
+date pickers
+tablas
+paginación
+badges de estado
+tarjetas KPI
+modales
+dropdowns
+pestañas
+alertas
+notificaciones
+tooltips
+loaders
+empty states
+confirm dialogs
+
+Todo debe seguir la misma línea visual.
+
+7. ESTADOS DEL SISTEMA
+
+Diseña bien los estados visuales.
+
+Estados de factura:
+pendiente
+pagada
+vencida
+anulada
+observada
+programada
+Estados de asistencia:
+presente
+tardanza
+ausente
+vacaciones
+licencia
+descanso
+Quiero badges y colores consistentes
+
+con muy buena legibilidad y estética profesional.
+
+8. UX EMPRESARIAL
+
+Quiero una UX excelente.
+
+Debes priorizar:
+pocos clics
+claridad visual
+jerarquía correcta
+rapidez al registrar
+filtros evidentes
+acciones principales visibles
+formularios fáciles
+tablas legibles
+navegación intuitiva
+feedback visual correcto
+Añade:
+breadcrumbs
+quick actions
+barra de búsqueda global
+paneles laterales para detalle rápido
+confirmaciones elegantes
+mensajes claros de error o éxito
+9. DISEÑO RESPONSIVE
+
+Quiero que todo sea responsive de verdad.
+
+Desktop
+completo
+elegante
+con sidebar
+paneles amplios
+Tablet
+adaptado
+bien distribuido
+Móvil
+funcional
+usable
+sin que se rompan tablas o formularios
+navegación cómoda
+cards bien apiladas
+sidebar transformado en drawer
+
+No quiero que el diseño móvil sea un desastre.
+
+10. DETALLE DE PANTALLAS INTERNAS
+
+Quiero que cada módulo tenga:
+
+pantalla principal
+pantalla de listado
+pantalla de detalle
+pantalla de creación
+pantalla de edición
+modales necesarios
+estados vacíos
+estados de carga
+estados de error
+
+No dejes las vistas internas descuidadas.
+
+11. LOOK PREMIUM
+
+Haz que el sistema se sienta premium.
+
+Detalles visuales deseados:
+sombras suaves
+bordes consistentes
+bloques bien alineados
+uso correcto de blanco y espacio
+títulos elegantes
+contrastes finos
+secciones bien respiradas
+iconografía profesional
+animaciones suaves y discretas
+
+Debe sentirse como software de pago serio.
+
+12. PROPUESTA VISUAL DE MARCA
+
+Quiero que también propongas:
+
+estilo del logo temporal
+tipografía sugerida
+estilo de iconos
+tono visual de la marca
+sensación general del producto
+
+Debe sentirse como una plataforma empresarial de alto valor.
+
+13. QUÉ ESPERO QUE HAGAS
+
+Quiero que diseñes todas las vistas del sistema con enfoque real de producto, no solo cajas y placeholders.
+
+Haz:
+
+estructura visual general
+sistema de diseño
+layout principal
+dashboard
+módulos principales
+componentes consistentes
+responsive
+pantallas internas
+estados vacíos y alertas
+estilo premium corporativo
+14. PRIORIDAD
+
+Prioriza:
+
+claridad
+elegancia
+consistencia
+experiencia empresarial
+sensación premium
+usabilidad real
+diseño vendible
+15. IMPORTANTE
+
+No quiero una interfaz recargada ni una copia barata de otro sistema.
+Quiero una identidad propia, moderna y profesional, pensada para que el SaaS pueda venderse a distintas empresas y se vea sólido desde el primer vistazo.
+
+El resultado debe parecer un sistema empresarial moderno que combina:
+
+control
+orden
+RRHH
+finanzas
+documentos
+operación
+
+en una sola experiencia visual coherente.
+
+REFUERZO FINAL PARA REPLIT
+
+Diseña este SaaS como si fuera un producto real listo para salir al mercado.
+No hagas pantallas genéricas.
+No hagas diseño básico.
+Quiero un sistema visual premium, moderno, corporativo, modular, limpio, intuitivo y completamente consistente.
+Cada pantalla debe sentirse útil, elegante y profesional.

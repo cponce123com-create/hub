@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Activity, Command, ShieldAlert } from "lucide-react";
+import { Activity, Command, ShieldAlert, Layers } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
@@ -59,55 +59,73 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full grid md:grid-cols-2 bg-background">
+    <div className="min-h-screen w-full flex bg-background">
       {/* Left side - Branding */}
-      <div className="hidden md:flex flex-col justify-between bg-card border-r border-border/50 p-10 relative overflow-hidden">
-        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
-        <div className="absolute -left-20 -top-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="hidden lg:flex flex-col justify-between bg-card/40 border-r border-border/20 p-12 relative overflow-hidden w-1/2 max-w-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background pointer-events-none" />
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60" />
         
         <div className="relative z-10">
-          <div className="flex items-center gap-2 font-bold text-2xl tracking-tight text-primary mb-2">
-            <Command className="w-8 h-8" />
+          <div className="flex items-center gap-3 font-bold text-3xl tracking-tight text-foreground mb-4">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
+              <Command className="w-6 h-6" />
+            </div>
             <span>ControlHub</span>
           </div>
-          <p className="text-muted-foreground text-sm max-w-sm">
-            Plataforma de gestión empresarial para operaciones modernas.
+          <p className="text-muted-foreground text-lg max-w-md leading-relaxed">
+            El centro de mando empresarial para operaciones modernas y equipos de alto rendimiento.
           </p>
         </div>
 
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="relative z-10 space-y-8 my-16">
+          <div className="flex items-start gap-4 group">
+            <div className="w-12 h-12 rounded-xl bg-card border border-border/50 flex items-center justify-center shrink-0 shadow-sm group-hover:border-primary/30 transition-colors">
               <Activity className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm mb-1">Centro de mando en tiempo real</h3>
-              <p className="text-sm text-muted-foreground">Monitorea KPIs, asistencia y métricas financieras en un solo lugar.</p>
+              <h3 className="font-semibold text-base mb-1 text-foreground">Visibilidad en tiempo real</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Monitorea KPIs, asistencia y métricas financieras consolidadas en un solo lugar.</p>
             </div>
           </div>
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <div className="flex items-start gap-4 group">
+            <div className="w-12 h-12 rounded-xl bg-card border border-border/50 flex items-center justify-center shrink-0 shadow-sm group-hover:border-primary/30 transition-colors">
               <ShieldAlert className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm mb-1">Seguridad de nivel bancario</h3>
-              <p className="text-sm text-muted-foreground">Control de acceso por roles y auditoría detallada de acciones.</p>
+              <h3 className="font-semibold text-base mb-1 text-foreground">Seguridad de nivel corporativo</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Control estricto de accesos por roles, auditoría detallada y cumplimiento normativo.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4 group">
+            <div className="w-12 h-12 rounded-xl bg-card border border-border/50 flex items-center justify-center shrink-0 shadow-sm group-hover:border-primary/30 transition-colors">
+              <Layers className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-base mb-1 text-foreground">Gestión integral unificada</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Facturación, recursos humanos, y documentos centralizados en un único ecosistema.</p>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} ControlHub. Todos los derechos reservados.
+        <div className="relative z-10 text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} ControlHub Enterprise.
         </div>
       </div>
 
       {/* Right side - Form */}
-      <div className="flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-8">
-          <div className="space-y-2 text-center md:text-left">
-            <h1 className="text-3xl font-bold tracking-tight">Iniciar sesión</h1>
+      <div className="flex-1 flex flex-col justify-center items-center p-6 md:p-12 relative">
+        <div className="absolute top-6 right-6 lg:hidden flex items-center gap-2 font-bold text-xl tracking-tight text-foreground">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
+            <Command className="w-5 h-5" />
+          </div>
+          <span>ControlHub</span>
+        </div>
+        
+        <div className="w-full max-w-md space-y-8 bg-card/30 p-8 sm:p-10 rounded-2xl border border-border/40 backdrop-blur-xl shadow-2xl">
+          <div className="space-y-3 text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Bienvenido de nuevo</h1>
             <p className="text-sm text-muted-foreground">
-              Ingresa tus credenciales para acceder a tu espacio de trabajo
+              Ingresa tus credenciales corporativas para acceder
             </p>
           </div>
 
@@ -119,12 +137,12 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Correo electrónico</FormLabel>
+                      <FormLabel className="text-foreground/80">Correo corporativo</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="nombre@empresa.com" 
                           {...field} 
-                          className="bg-card"
+                          className="bg-background/50 h-11 border-border/50 focus-visible:ring-primary/50 transition-all"
                           data-testid="input-email"
                         />
                       </FormControl>
@@ -138,8 +156,8 @@ export default function Login() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel>Contraseña</FormLabel>
-                        <a href="#" className="text-xs text-primary hover:underline" tabIndex={-1}>
+                        <FormLabel className="text-foreground/80">Contraseña</FormLabel>
+                        <a href="#" className="text-xs text-primary hover:text-primary/80 transition-colors font-medium" tabIndex={-1}>
                           ¿Olvidaste tu contraseña?
                         </a>
                       </div>
@@ -148,7 +166,7 @@ export default function Login() {
                           type="password" 
                           placeholder="••••••••" 
                           {...field} 
-                          className="bg-card"
+                          className="bg-background/50 h-11 border-border/50 focus-visible:ring-primary/50 transition-all"
                           data-testid="input-password"
                         />
                       </FormControl>
@@ -160,11 +178,11 @@ export default function Login() {
 
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-11 text-base font-medium shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all" 
                 disabled={loginMutation.isPending}
                 data-testid="button-login"
               >
-                {loginMutation.isPending ? "Ingresando..." : "Ingresar"}
+                {loginMutation.isPending ? "Autenticando..." : "Ingresar a ControlHub"}
               </Button>
             </form>
           </Form>
