@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedIfEmpty } from "./lib/seed";
+import { seedIfEmpty, ensureSuperAdmin } from "./lib/seed";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +25,7 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 
   seedIfEmpty()
+    .then(() => ensureSuperAdmin())
     .then(() => logger.info("Seed check complete"))
     .catch((e) => logger.error(e, "Seed error"));
 });

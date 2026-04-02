@@ -1,5 +1,6 @@
 import { db } from "@workspace/db";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 import {
   companiesTable,
   usersTable,
@@ -11,8 +12,48 @@ import {
   announcementsTable,
 } from "@workspace/db";
 
+export async function ensureSuperAdmin() {
+  const existing = await db.query.usersTable.findFirst({
+    where: eq(usersTable.email, "superadmin@controlhub.io"),
+  });
+  if (existing) return;
+
+  const passwordHash = await bcrypt.hash("Admin2024!", 12);
+
+  let platformCompany = await db.query.companiesTable.findFirst({
+    where: eq(companiesTable.ruc, "00000000000"),
+  });
+
+  if (!platformCompany) {
+    const [created] = await db
+      .insert(companiesTable)
+      .values({
+        name: "ControlHub Platform",
+        ruc: "00000000000",
+        currency: "PEN",
+        industry: "Plataforma SaaS",
+        address: "Lima, Perú",
+        email: "admin@controlhub.io",
+        phone: "+51 1 000-0000",
+        activeModules: ["finance", "hr", "attendance", "documents", "announcements"],
+      })
+      .returning();
+    platformCompany = created!;
+  }
+
+  await db.insert(usersTable).values({
+    companyId: platformCompany.id,
+    email: "superadmin@controlhub.io",
+    name: "Super Administrador",
+    passwordHash,
+    role: "superadmin",
+  });
+}
+
 export async function seedIfEmpty() {
-  const existing = await db.query.companiesTable.findFirst();
+  const existing = await db.query.companiesTable.findFirst({
+    where: eq(companiesTable.ruc, "20123456789"),
+  });
   if (existing) return;
 
   const passwordHash = await bcrypt.hash("password", 12);

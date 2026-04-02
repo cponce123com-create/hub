@@ -45,7 +45,11 @@ export default function Login() {
           setUser(data.user);
           setCompany(data.company);
           setCompanyId(data.company.id);
-          setLocation("/");
+          if (data.user.role === "superadmin") {
+            setLocation("/admin");
+          } else {
+            setLocation("/");
+          }
         },
         onError: (error) => {
           toast({

@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { requireAuth, requireCompany } from "../middlewares/requireAuth";
 import healthRouter from "./health";
 import authRouter from "./auth";
+import adminRouter from "./admin";
 import companiesRouter from "./companies";
 import usersRouter from "./users";
 import employeesRouter from "./employees";
@@ -19,6 +20,7 @@ router.use(healthRouter);
 router.use(authRouter);
 
 router.use(requireAuth);
+router.use(adminRouter);
 router.use("/companies/:companyId", requireCompany);
 
 router.use(companiesRouter);

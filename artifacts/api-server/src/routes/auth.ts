@@ -44,6 +44,7 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
 
     req.session.userId = user.id;
     req.session.companyId = user.companyId;
+    req.session.role = user.role;
     await new Promise<void>((resolve, reject) =>
       req.session.save((err) => (err ? reject(err) : resolve())),
     );

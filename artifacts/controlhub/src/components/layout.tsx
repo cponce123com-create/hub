@@ -10,10 +10,11 @@ import {
   BarChart,
   Settings,
   LogOut,
-  Menu,
   Command,
   Search,
   Bell,
+  ShieldCheck,
+  ChevronLeft,
 } from "lucide-react";
 import { useCompany } from "@/context/CompanyContext";
 import { useLogout } from "@workspace/api-client-react";
@@ -69,7 +70,7 @@ const navGroups = [
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, company, logout } = useCompany();
+  const { user, company, logout, isSuperAdmin, activeCompany, setActiveCompany, setCompanyId } = useCompany();
   const logoutMutation = useLogout();
   const [, setLocation] = useLocation();
 
@@ -82,9 +83,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const handleExitImpersonation = () => {
+    setActiveCompany(null);
+    setCompanyId(0);
+    setLocation("/admin");
+  };
+
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-background overflow-hidden text-foreground">
+      <div className="flex h-screen w-full bg-background overflow-hidden text-foreground flex-col">
+        {isSuperAdmin && activeCompany && (
+          <div className="h-10 bg-primary/10 border-b border-primary/20 flex items-center justify-between px-4 shrink-0 z-50">
+            <div className="flex items-center gap-2 text-sm text-primary font-medium">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Panel Global — Gestionando: <strong>{activeCompany.name}</strong></span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExitImpersonation}
+              className="h-7 text-xs gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              Volver al panel global
+            </Button>
+          </div>
+        )}
+        <div className="flex flex-1 min-h-0">
         <AppSidebar />
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/95">
           <header className="h-16 border-b border-border/40 flex items-center px-4 md:px-6 bg-card/60 backdrop-blur-xl z-10 shrink-0 sticky top-0 shadow-sm">
@@ -140,6 +165,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </main>
+        </div>
       </div>
     </SidebarProvider>
   );

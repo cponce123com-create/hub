@@ -12,6 +12,7 @@ declare module "express-session" {
   interface SessionData {
     userId?: number;
     companyId?: number;
+    role?: string;
   }
 }
 

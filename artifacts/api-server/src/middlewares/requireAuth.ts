@@ -14,8 +14,20 @@ export function requireCompany(req: Request, res: Response, next: NextFunction):
     res.status(400).json({ error: "ID de empresa inválido" });
     return;
   }
+  if (req.session?.role === "superadmin") {
+    next();
+    return;
+  }
   if (companyId !== req.session?.companyId) {
     res.status(403).json({ error: "Acceso denegado" });
+    return;
+  }
+  next();
+}
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.session?.role !== "superadmin") {
+    res.status(403).json({ error: "Se requiere rol de super administrador" });
     return;
   }
   next();

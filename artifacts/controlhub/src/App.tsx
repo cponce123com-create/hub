@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CompanyProvider, useCompany } from "@/context/CompanyContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
+import AdminCompanies from "@/pages/admin/companies";
 import Dashboard from "@/pages/dashboard";
 import Invoices from "@/pages/finance/invoices";
 import Suppliers from "@/pages/finance/suppliers";
@@ -28,10 +29,18 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
+function SuperAdminRoute() {
+  const { user } = useCompany();
+  if (!user) return <Login />;
+  if (user.role !== "superadmin") return <Login />;
+  return <AdminCompanies />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/admin" component={SuperAdminRoute} />
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
       </Route>

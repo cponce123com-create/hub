@@ -69,7 +69,8 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - **Param validation**: NaN checks on all numeric URL params
 - **Pagination**: all list endpoints support `limit` (max 200, default 50) and `offset`
 - **Employee search**: searches firstName, lastName, and documentId
-- Default demo user: `admin@mineraandina.pe` / `password`
+- Demo credentials: `admin@mineraandina.pe` / `password` (admin empresa), `rrhh@mineraandina.pe` / `password`, `finanzas@mineraandina.pe` / `password`
+- Super admin: `superadmin@controlhub.io` / `Admin2024!` → redirige a `/admin` (Panel Global)
 - Required env vars: `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGIN`, `PORT`
 
 ### DB Schema (9 tables)

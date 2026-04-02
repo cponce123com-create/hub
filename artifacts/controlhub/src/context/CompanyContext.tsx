@@ -8,6 +8,9 @@ interface CompanyContextType {
   setUser: (user: UserProfile | null) => void;
   company: Company | null;
   setCompany: (company: Company | null) => void;
+  isSuperAdmin: boolean;
+  activeCompany: { id: number; name: string } | null;
+  setActiveCompany: (c: { id: number; name: string } | null) => void;
   logout: () => void;
 }
 
@@ -17,19 +20,20 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyId, setCompanyId] = useState<number>(1);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [activeCompany, setActiveCompany] = useState<{ id: number; name: string } | null>(null);
 
-  // Load from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("controlhub_user");
     const storedCompany = localStorage.getItem("controlhub_company");
     const storedCompanyId = localStorage.getItem("controlhub_companyId");
+    const storedActiveCompany = localStorage.getItem("controlhub_activeCompany");
 
     if (storedUser) setUser(JSON.parse(storedUser));
     if (storedCompany) setCompany(JSON.parse(storedCompany));
     if (storedCompanyId) setCompanyId(Number(storedCompanyId));
+    if (storedActiveCompany) setActiveCompany(JSON.parse(storedActiveCompany));
   }, []);
 
-  // Save to localStorage on change
   useEffect(() => {
     if (user) localStorage.setItem("controlhub_user", JSON.stringify(user));
     else localStorage.removeItem("controlhub_user");
@@ -44,9 +48,17 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("controlhub_companyId", companyId.toString());
   }, [companyId]);
 
+  useEffect(() => {
+    if (activeCompany) localStorage.setItem("controlhub_activeCompany", JSON.stringify(activeCompany));
+    else localStorage.removeItem("controlhub_activeCompany");
+  }, [activeCompany]);
+
+  const isSuperAdmin = user?.role === "superadmin";
+
   const logout = () => {
     setUser(null);
     setCompany(null);
+    setActiveCompany(null);
   };
 
   return (
@@ -58,6 +70,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setUser,
         company,
         setCompany,
+        isSuperAdmin,
+        activeCompany,
+        setActiveCompany,
         logout,
       }}
     >
