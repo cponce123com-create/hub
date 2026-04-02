@@ -36,8 +36,8 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Command Center</h1>
-          <p className="text-muted-foreground">Real-time overview of your operations.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Centro de Mando</h1>
+          <p className="text-muted-foreground">Visión general en tiempo real de tus operaciones.</p>
         </div>
 
         {loadingSummary ? (
@@ -58,45 +58,45 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
+                <CardTitle className="text-sm font-medium">Facturas Pendientes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${summary.finance.totalPending.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  {summary.finance.invoiceCount} total invoices
+                  {summary.finance.invoiceCount} facturas en total
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-destructive">Overdue</CardTitle>
+                <CardTitle className="text-sm font-medium text-destructive">Vencidas</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-destructive">${summary.finance.totalOverdue.toLocaleString()}</div>
                 <p className="text-xs text-destructive/80">
-                  {summary.finance.overdueCount} overdue
+                  {summary.finance.overdueCount} facturas vencidas
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
+                <CardTitle className="text-sm font-medium">Empleados Activos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.hr.activeEmployees}</div>
                 <p className="text-xs text-muted-foreground">
-                  {summary.hr.totalEmployees} total
+                  {summary.hr.totalEmployees} en total
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
+                <CardTitle className="text-sm font-medium">Tasa de Asistencia</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.attendance.attendanceRate}%</div>
                 <p className="text-xs text-muted-foreground">
-                  Today
+                  Hoy
                 </p>
               </CardContent>
             </Card>
@@ -106,7 +106,7 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
-              <CardTitle>Invoice Trend</CardTitle>
+              <CardTitle>Tendencia de Facturas</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
               {summary?.invoiceTrend ? (
@@ -132,13 +132,13 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">Loading chart...</div>
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">Cargando gráfico...</div>
               )}
             </CardContent>
           </Card>
           <Card className="col-span-3">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Actividad Reciente</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -171,7 +171,7 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No recent activity.</p>
+                  <p className="text-sm text-muted-foreground">Sin actividad reciente.</p>
                 )}
               </div>
             </CardContent>

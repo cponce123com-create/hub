@@ -19,8 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Activity, Command, ShieldAlert } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Correo electrónico inválido"),
+  password: z.string().min(1, "La contraseña es requerida"),
 });
 
 export default function Login() {
@@ -50,8 +50,8 @@ export default function Login() {
         onError: (error) => {
           toast({
             variant: "destructive",
-            title: "Login failed",
-            description: error.message || "Invalid credentials",
+            title: "Error al iniciar sesión",
+            description: error.message || "Credenciales incorrectas",
           });
         },
       }
@@ -71,7 +71,7 @@ export default function Login() {
             <span>ControlHub</span>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm">
-            Enterprise-grade management platform for modern business operations.
+            Plataforma de gestión empresarial para operaciones modernas.
           </p>
         </div>
 
@@ -81,8 +81,8 @@ export default function Login() {
               <Activity className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm mb-1">Real-time command center</h3>
-              <p className="text-sm text-muted-foreground">Monitor KPIs, attendance, and financial metrics at a glance.</p>
+              <h3 className="font-semibold text-sm mb-1">Centro de mando en tiempo real</h3>
+              <p className="text-sm text-muted-foreground">Monitorea KPIs, asistencia y métricas financieras en un solo lugar.</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -90,14 +90,14 @@ export default function Login() {
               <ShieldAlert className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm mb-1">Bank-grade security</h3>
-              <p className="text-sm text-muted-foreground">Role-based access control and detailed audit logging.</p>
+              <h3 className="font-semibold text-sm mb-1">Seguridad de nivel bancario</h3>
+              <p className="text-sm text-muted-foreground">Control de acceso por roles y auditoría detallada de acciones.</p>
             </div>
           </div>
         </div>
 
         <div className="relative z-10 text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} ControlHub. All rights reserved.
+          &copy; {new Date().getFullYear()} ControlHub. Todos los derechos reservados.
         </div>
       </div>
 
@@ -105,9 +105,9 @@ export default function Login() {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2 text-center md:text-left">
-            <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Iniciar sesión</h1>
             <p className="text-sm text-muted-foreground">
-              Enter your credentials to access your workspace
+              Ingresa tus credenciales para acceder a tu espacio de trabajo
             </p>
           </div>
 
@@ -119,10 +119,10 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Correo electrónico</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="name@company.com" 
+                          placeholder="nombre@empresa.com" 
                           {...field} 
                           className="bg-card"
                           data-testid="input-email"
@@ -138,9 +138,9 @@ export default function Login() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Contraseña</FormLabel>
                         <a href="#" className="text-xs text-primary hover:underline" tabIndex={-1}>
-                          Forgot password?
+                          ¿Olvidaste tu contraseña?
                         </a>
                       </div>
                       <FormControl>
@@ -164,7 +164,7 @@ export default function Login() {
                 disabled={loginMutation.isPending}
                 data-testid="button-login"
               >
-                {loginMutation.isPending ? "Signing in..." : "Sign in"}
+                {loginMutation.isPending ? "Ingresando..." : "Ingresar"}
               </Button>
             </form>
           </Form>

@@ -29,15 +29,15 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: FileText, label: "Invoices", href: "/finance/invoices" },
-  { icon: Building2, label: "Suppliers", href: "/finance/suppliers" },
-  { icon: Users, label: "Employees", href: "/hr/employees" },
-  { icon: Calendar, label: "Attendance", href: "/attendance" },
-  { icon: Files, label: "Documents", href: "/documents" },
-  { icon: Megaphone, label: "Announcements", href: "/announcements" },
-  { icon: BarChart, label: "Reports", href: "/reports" },
-  { icon: Settings, label: "Settings", href: "/settings" },
+  { icon: LayoutDashboard, label: "Inicio", href: "/" },
+  { icon: FileText, label: "Facturas", href: "/finance/invoices" },
+  { icon: Building2, label: "Proveedores", href: "/finance/suppliers" },
+  { icon: Users, label: "Empleados", href: "/hr/employees" },
+  { icon: Calendar, label: "Asistencia", href: "/attendance" },
+  { icon: Files, label: "Documentos", href: "/documents" },
+  { icon: Megaphone, label: "Comunicados", href: "/announcements" },
+  { icon: BarChart, label: "Reportes", href: "/reports" },
+  { icon: Settings, label: "Configuración", href: "/settings" },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -136,7 +136,7 @@ function AppSidebar() {
           data-testid="button-logout"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          {state === "expanded" && <span>Log out</span>}
+          {state === "expanded" && <span>Cerrar sesión</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
