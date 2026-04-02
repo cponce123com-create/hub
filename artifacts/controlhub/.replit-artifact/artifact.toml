@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "ControlHub — SaaS Empresarial"
+version = "1.0.0"
+id = "artifacts/controlhub"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24710
+
+[services.development]
+run = "pnpm --filter @workspace/controlhub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/controlhub", "run", "build" ]
+publicDir = "artifacts/controlhub/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24710"
+BASE_PATH = "/"

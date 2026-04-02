@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ControlHub SaaS Empresarial API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: companies
+  - name: users
+  - name: employees
+  - name: invoices
+  - name: suppliers
+  - name: attendance
+  - name: documents
+  - name: announcements
+  - name: reports
+  - name: dashboard
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,1118 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # COMPANIES
+  /companies:
+    get:
+      operationId: listCompanies
+      tags: [companies]
+      summary: List companies
+      responses:
+        "200":
+          description: Companies list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Company"
+    post:
+      operationId: createCompany
+      tags: [companies]
+      summary: Create company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+
+  /companies/{companyId}:
+    get:
+      operationId: getCompany
+      tags: [companies]
+      summary: Get company
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+    put:
+      operationId: updateCompany
+      tags: [companies]
+      summary: Update company
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCompanyBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+
+  # USERS
+  /companies/{companyId}/users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users in company
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create user
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /companies/{companyId}/users/{userId}:
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # EMPLOYEES
+  /companies/{companyId}/employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List employees
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: area
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create employee
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmployeeBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /companies/{companyId}/employees/{employeeId}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get employee
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeDetail"
+    put:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update employee
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmployeeBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: Delete employee
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # INVOICES
+  /companies/{companyId}/invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List invoices
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: supplierId
+          in: query
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create invoice
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /companies/{companyId}/invoices/{invoiceId}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get invoice detail
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+    put:
+      operationId: updateInvoice
+      tags: [invoices]
+      summary: Update invoice
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+    delete:
+      operationId: deleteInvoice
+      tags: [invoices]
+      summary: Delete invoice
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # SUPPLIERS
+  /companies/{companyId}/suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [suppliers]
+      summary: List suppliers
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suppliers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+    post:
+      operationId: createSupplier
+      tags: [suppliers]
+      summary: Create supplier
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSupplierBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+
+  /companies/{companyId}/suppliers/{supplierId}:
+    get:
+      operationId: getSupplier
+      tags: [suppliers]
+      summary: Get supplier
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: supplierId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+    put:
+      operationId: updateSupplier
+      tags: [suppliers]
+      summary: Update supplier
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: supplierId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSupplierBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+    delete:
+      operationId: deleteSupplier
+      tags: [suppliers]
+      summary: Delete supplier
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: supplierId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ATTENDANCE
+  /companies/{companyId}/attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: List attendance records
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: area
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attendance"
+    post:
+      operationId: createAttendance
+      tags: [attendance]
+      summary: Create attendance record
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAttendanceBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendance"
+
+  /companies/{companyId}/attendance/{attendanceId}:
+    put:
+      operationId: updateAttendance
+      tags: [attendance]
+      summary: Update attendance record
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: attendanceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAttendanceBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendance"
+    delete:
+      operationId: deleteAttendance
+      tags: [attendance]
+      summary: Delete attendance record
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: attendanceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # DOCUMENTS
+  /companies/{companyId}/documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Create document record
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /companies/{companyId}/documents/{documentId}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get document
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete document
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ANNOUNCEMENTS
+  /companies/{companyId}/announcements:
+    get:
+      operationId: listAnnouncements
+      tags: [announcements]
+      summary: List announcements
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: priority
+          in: query
+          schema:
+            type: string
+        - name: area
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+    post:
+      operationId: createAnnouncement
+      tags: [announcements]
+      summary: Create announcement
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAnnouncementBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+
+  /companies/{companyId}/announcements/{announcementId}:
+    put:
+      operationId: updateAnnouncement
+      tags: [announcements]
+      summary: Update announcement
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAnnouncementBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+    delete:
+      operationId: deleteAnnouncement
+      tags: [announcements]
+      summary: Delete announcement
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /companies/{companyId}/announcements/{announcementId}/read:
+    post:
+      operationId: markAnnouncementRead
+      tags: [announcements]
+      summary: Mark announcement as read
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # DASHBOARD
+  /companies/{companyId}/dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get executive dashboard summary
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /companies/{companyId}/dashboard/alerts:
+    get:
+      operationId: getDashboardAlerts
+      tags: [dashboard]
+      summary: Get active alerts for dashboard
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
+  /companies/{companyId}/dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # REPORTS
+  /companies/{companyId}/reports/finance:
+    get:
+      operationId: getFinanceReport
+      tags: [reports]
+      summary: Finance report
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Finance report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceReport"
+
+  /companies/{companyId}/reports/attendance:
+    get:
+      operationId: getAttendanceReport
+      tags: [reports]
+      summary: Attendance report
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attendance report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceReport"
+
+  /companies/{companyId}/reports/hr:
+    get:
+      operationId: getHrReport
+      tags: [reports]
+      summary: HR report
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: HR report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HrReport"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +1152,956 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        company:
+          $ref: "#/components/schemas/Company"
+      required: [user, company]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [superadmin, admin, hr, finance, supervisor, operator, employee]
+        companyId:
+          type: integer
+        companyName:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+      required: [id, email, name, role, companyId, companyName]
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ruc:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+        currency:
+          type: string
+        industry:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        activeModules:
+          type: array
+          items:
+            type: string
+        employeeCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, currency, activeModules, employeeCount, createdAt]
+
+    CreateCompanyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        ruc:
+          type: string
+        currency:
+          type: string
+        industry:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        activeModules:
+          type: array
+          items:
+            type: string
+      required: [name, currency]
+
+    UpdateCompanyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        ruc:
+          type: string
+        currency:
+          type: string
+        industry:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        activeModules:
+          type: array
+          items:
+            type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [superadmin, admin, hr, finance, supervisor, operator, employee]
+        companyId:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, email, name, role, companyId, isActive, createdAt]
+
+    CreateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, hr, finance, supervisor, operator, employee]
+      required: [email, name, password, role]
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, hr, finance, supervisor, operator, employee]
+        isActive:
+          type: boolean
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        documentId:
+          type: string
+        position:
+          type: string
+        area:
+          type: string
+        site:
+          type: string
+          nullable: true
+        contractType:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, on_leave, suspended]
+        startDate:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, companyId, firstName, lastName, documentId, position, area, contractType, status, startDate, createdAt]
+
+    EmployeeDetail:
+      allOf:
+        - $ref: "#/components/schemas/Employee"
+        - type: object
+          properties:
+            address:
+              type: string
+              nullable: true
+            emergencyContact:
+              type: string
+              nullable: true
+            emergencyPhone:
+              type: string
+              nullable: true
+            notes:
+              type: string
+              nullable: true
+            attendanceSummary:
+              type: object
+              properties:
+                presentDays:
+                  type: integer
+                absentDays:
+                  type: integer
+                lateDays:
+                  type: integer
+                hoursWorked:
+                  type: number
+              required: [presentDays, absentDays, lateDays, hoursWorked]
+            recentAnnouncements:
+              type: array
+              items:
+                $ref: "#/components/schemas/Announcement"
+            documentCount:
+              type: integer
+          required: [attendanceSummary, recentAnnouncements, documentCount]
+
+    CreateEmployeeBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        documentId:
+          type: string
+        position:
+          type: string
+        area:
+          type: string
+        site:
+          type: string
+        contractType:
+          type: string
+          enum: [indefinite, fixed_term, part_time, intern, contractor]
+        status:
+          type: string
+          enum: [active, inactive, on_leave, suspended]
+        startDate:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        emergencyContact:
+          type: string
+        emergencyPhone:
+          type: string
+        notes:
+          type: string
+      required: [firstName, lastName, documentId, position, area, contractType, status, startDate]
+
+    UpdateEmployeeBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        position:
+          type: string
+        area:
+          type: string
+        site:
+          type: string
+        contractType:
+          type: string
+        status:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        emergencyContact:
+          type: string
+        emergencyPhone:
+          type: string
+        notes:
+          type: string
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        supplierId:
+          type: integer
+        supplierName:
+          type: string
+        invoiceNumber:
+          type: string
+        issueDate:
+          type: string
+        dueDate:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, overdue, cancelled, observed, scheduled]
+        category:
+          type: string
+          nullable: true
+        costCenter:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, companyId, supplierId, supplierName, invoiceNumber, issueDate, dueDate, amount, currency, status, createdAt]
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        invoiceNumber:
+          type: string
+        issueDate:
+          type: string
+        dueDate:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, overdue, cancelled, observed, scheduled]
+        category:
+          type: string
+        costCenter:
+          type: string
+        notes:
+          type: string
+        fileUrl:
+          type: string
+      required: [supplierId, invoiceNumber, issueDate, dueDate, amount, currency, status]
+
+    UpdateInvoiceBody:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        invoiceNumber:
+          type: string
+        issueDate:
+          type: string
+        dueDate:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, overdue, cancelled, observed, scheduled]
+        category:
+          type: string
+        costCenter:
+          type: string
+        notes:
+          type: string
+        fileUrl:
+          type: string
+
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        name:
+          type: string
+        tradeName:
+          type: string
+          nullable: true
+        ruc:
+          type: string
+          nullable: true
+        contactName:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        invoiceCount:
+          type: integer
+        totalBilled:
+          type: number
+        createdAt:
+          type: string
+      required: [id, companyId, name, invoiceCount, totalBilled, createdAt]
+
+    CreateSupplierBody:
+      type: object
+      properties:
+        name:
+          type: string
+        tradeName:
+          type: string
+        ruc:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+      required: [name]
+
+    UpdateSupplierBody:
+      type: object
+      properties:
+        name:
+          type: string
+        tradeName:
+          type: string
+        ruc:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        area:
+          type: string
+        date:
+          type: string
+        checkIn:
+          type: string
+          nullable: true
+        checkOut:
+          type: string
+          nullable: true
+        hoursWorked:
+          type: number
+          nullable: true
+        overtime:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [present, absent, late, on_leave, vacation, sick_leave, justified_absence, unjustified_absence]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, companyId, employeeId, employeeName, area, date, status, createdAt]
+
+    CreateAttendanceBody:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+        date:
+          type: string
+        checkIn:
+          type: string
+        checkOut:
+          type: string
+        status:
+          type: string
+          enum: [present, absent, late, on_leave, vacation, sick_leave, justified_absence, unjustified_absence]
+        notes:
+          type: string
+      required: [employeeId, date, status]
+
+    UpdateAttendanceBody:
+      type: object
+      properties:
+        checkIn:
+          type: string
+        checkOut:
+          type: string
+        status:
+          type: string
+          enum: [present, absent, late, on_leave, vacation, sick_leave, justified_absence, unjustified_absence]
+        notes:
+          type: string
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        employeeId:
+          type: integer
+          nullable: true
+        employeeName:
+          type: string
+          nullable: true
+        title:
+          type: string
+        category:
+          type: string
+          enum: [hr, finance, legal, operations, security, contracts, payslips, invoices, manuals, other]
+        fileUrl:
+          type: string
+          nullable: true
+        fileType:
+          type: string
+          nullable: true
+        fileSize:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        uploadedBy:
+          type: string
+        createdAt:
+          type: string
+      required: [id, companyId, title, category, uploadedBy, createdAt]
+
+    CreateDocumentBody:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+          enum: [hr, finance, legal, operations, security, contracts, payslips, invoices, manuals, other]
+        fileUrl:
+          type: string
+        fileType:
+          type: string
+        fileSize:
+          type: integer
+        notes:
+          type: string
+      required: [title, category]
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        targetType:
+          type: string
+          enum: [all, area, site, individual]
+        targetValue:
+          type: string
+          nullable: true
+        publishedBy:
+          type: string
+        readCount:
+          type: integer
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, companyId, title, content, priority, targetType, publishedBy, readCount, isRead, createdAt]
+
+    CreateAnnouncementBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        targetType:
+          type: string
+          enum: [all, area, site, individual]
+        targetValue:
+          type: string
+      required: [title, content, priority, targetType]
+
+    UpdateAnnouncementBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        targetType:
+          type: string
+          enum: [all, area, site, individual]
+        targetValue:
+          type: string
+
+    DashboardSummary:
+      type: object
+      properties:
+        finance:
+          type: object
+          properties:
+            totalPending:
+              type: number
+            totalOverdue:
+              type: number
+            totalPaid:
+              type: number
+            invoiceCount:
+              type: integer
+            overdueCount:
+              type: integer
+            upcomingCount:
+              type: integer
+          required: [totalPending, totalOverdue, totalPaid, invoiceCount, overdueCount, upcomingCount]
+        hr:
+          type: object
+          properties:
+            totalEmployees:
+              type: integer
+            activeEmployees:
+              type: integer
+            onLeaveEmployees:
+              type: integer
+            newThisMonth:
+              type: integer
+          required: [totalEmployees, activeEmployees, onLeaveEmployees, newThisMonth]
+        attendance:
+          type: object
+          properties:
+            presentToday:
+              type: integer
+            absentToday:
+              type: integer
+            lateToday:
+              type: integer
+            attendanceRate:
+              type: number
+          required: [presentToday, absentToday, lateToday, attendanceRate]
+        documents:
+          type: object
+          properties:
+            totalDocuments:
+              type: integer
+            recentUploads:
+              type: integer
+          required: [totalDocuments, recentUploads]
+        announcements:
+          type: object
+          properties:
+            totalActive:
+              type: integer
+            unreadCount:
+              type: integer
+            urgentCount:
+              type: integer
+          required: [totalActive, unreadCount, urgentCount]
+        invoiceTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              paid:
+                type: number
+              pending:
+                type: number
+              overdue:
+                type: number
+            required: [month, paid, pending, overdue]
+      required: [finance, hr, attendance, documents, announcements, invoiceTrend]
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [invoice_overdue, invoice_due_soon, attendance_alert, document_expiring, general]
+        title:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error]
+        entityId:
+          type: integer
+          nullable: true
+        entityType:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, type, title, message, severity, createdAt]
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        action:
+          type: string
+        entityName:
+          type: string
+        performedBy:
+          type: string
+        module:
+          type: string
+          enum: [finance, hr, attendance, documents, announcements, settings]
+        createdAt:
+          type: string
+      required: [id, type, action, entityName, performedBy, module, createdAt]
+
+    FinanceReport:
+      type: object
+      properties:
+        period:
+          type: string
+        summary:
+          type: object
+          properties:
+            totalInvoiced:
+              type: number
+            totalPaid:
+              type: number
+            totalPending:
+              type: number
+            totalOverdue:
+              type: number
+          required: [totalInvoiced, totalPaid, totalPending, totalOverdue]
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+              amount:
+                type: number
+            required: [status, count, amount]
+        bySupplier:
+          type: array
+          items:
+            type: object
+            properties:
+              supplierName:
+                type: string
+              invoiceCount:
+                type: integer
+              totalAmount:
+                type: number
+            required: [supplierName, invoiceCount, totalAmount]
+        monthlyTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              amount:
+                type: number
+            required: [month, amount]
+      required: [period, summary, byStatus, bySupplier, monthlyTrend]
+
+    AttendanceReport:
+      type: object
+      properties:
+        period:
+          type: string
+        summary:
+          type: object
+          properties:
+            totalDays:
+              type: integer
+            avgAttendanceRate:
+              type: number
+            totalHoursWorked:
+              type: number
+            totalOvertime:
+              type: number
+          required: [totalDays, avgAttendanceRate, totalHoursWorked, totalOvertime]
+        byEmployee:
+          type: array
+          items:
+            type: object
+            properties:
+              employeeName:
+                type: string
+              area:
+                type: string
+              presentDays:
+                type: integer
+              absentDays:
+                type: integer
+              lateDays:
+                type: integer
+              hoursWorked:
+                type: number
+            required: [employeeName, area, presentDays, absentDays, lateDays, hoursWorked]
+        byArea:
+          type: array
+          items:
+            type: object
+            properties:
+              area:
+                type: string
+              attendanceRate:
+                type: number
+              employeeCount:
+                type: integer
+            required: [area, attendanceRate, employeeCount]
+      required: [period, summary, byEmployee, byArea]
+
+    HrReport:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalEmployees:
+              type: integer
+            byStatus:
+              type: array
+              items:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  count:
+                    type: integer
+                required: [status, count]
+            byArea:
+              type: array
+              items:
+                type: object
+                properties:
+                  area:
+                    type: string
+                  count:
+                    type: integer
+                required: [area, count]
+            byContractType:
+              type: array
+              items:
+                type: object
+                properties:
+                  contractType:
+                    type: string
+                  count:
+                    type: integer
+                required: [contractType, count]
+          required: [totalEmployees, byStatus, byArea, byContractType]
+      required: [summary]

@@ -1,0 +1,705 @@
+Quiero que construyas un SaaS empresarial híbrido, modular, escalable y multiempresa, pensado para funcionar en distintas empresas y rubros, integrando en un solo sistema:
+
+Contabilidad / administración
+RRHH
+Control documentario
+Tareo / asistencia
+Operaciones internas
+Módulos opcionales adicionales
+Dashboard gerencial
+Alertas y automatizaciones
+
+La idea no es copiar visualmente una plataforma específica, sino sintetizar las mejores prácticas de sistemas tipo Smart Boleta, ERPs, sistemas administrativos y plataformas de RRHH, y convertirlas en un SaaS moderno, limpio, intuitivo, profesional y adaptable a varias empresas.
+
+Quiero que el producto quede planteado como un mini ERP SaaS modular, donde cada empresa pueda activar o desactivar módulos según su necesidad.
+
+1. OBJETIVO GENERAL DEL PRODUCTO
+
+Construir una plataforma SaaS llamada provisionalmente [poner nombre temporal, por ejemplo: PonceCore / BizControl / ControlHub], que permita a una empresa gestionar desde una sola plataforma:
+
+trabajadores
+tareos
+asistencia
+documentos laborales
+boletas o comprobantes internos
+facturas por pagar y pagadas
+cuentas administrativas
+proveedores
+reportes
+comunicados internos
+paneles de control
+archivos y evidencias
+aprobaciones
+alertas automáticas
+
+Debe estar pensada para ser usada por:
+
+pequeñas empresas
+medianas empresas
+empresas operativas
+almacenes
+comercios
+empresas de servicios
+empresas industriales
+
+Debe sentirse como un sistema empresarial serio, pero fácil de usar.
+
+2. ENFOQUE DE ARQUITECTURA
+Quiero arquitectura multiempresa / multi-tenant
+
+Eso significa:
+
+una sola plataforma
+varias empresas registradas
+cada empresa con sus propios usuarios
+cada empresa con sus propios datos
+cada empresa con sus módulos activos
+total aislamiento de información entre empresas
+
+Cada empresa debe tener:
+
+su perfil
+su configuración
+sus usuarios
+sus áreas
+sus empleados
+sus facturas
+sus documentos
+sus comunicados
+sus reportes
+sus permisos
+sus módulos habilitados
+
+No quiero una app monousuario ni monoempresa.
+Debe quedar lista para venderse a varias empresas como SaaS real.
+
+3. TECNOLOGÍA RECOMENDADA
+
+Quiero que uses un stack moderno, estable y escalable.
+
+Frontend
+React
+Vite o Next.js si lo ves mejor
+Tailwind CSS
+componentes modernos
+diseño responsive real
+interfaz limpia tipo SaaS premium
+sidebar profesional
+tarjetas KPI
+tablas avanzadas
+filtros potentes
+modales elegantes
+formularios rápidos
+Backend
+Node.js
+Express o NestJS si conviene más para orden y escalabilidad
+API estructurada y clara
+autenticación segura
+middleware por permisos y empresa
+Base de datos
+PostgreSQL
+ORM
+Prisma preferiblemente
+Archivos
+almacenamiento de archivos y documentos
+subida de PDFs, imágenes y adjuntos
+organizar documentos por empresa y por módulo
+Autenticación
+login seguro
+sesiones o JWT
+recuperación de contraseña
+roles y permisos
+4. DISEÑO GENERAL DEL SISTEMA
+
+El sistema debe estar organizado en grandes bloques modulares:
+
+A. DASHBOARD GENERAL
+
+Pantalla inicial empresarial con resumen ejecutivo.
+
+Debe mostrar:
+
+facturas por pagar
+facturas vencidas
+pagos recientes
+empleados activos
+asistencia del día
+tardanzas
+documentos pendientes
+comunicados recientes
+tareas o alertas importantes
+indicadores gráficos
+accesos rápidos a módulos frecuentes
+
+Debe verse moderno, útil y ejecutivo.
+
+B. MÓDULO DE ADMINISTRACIÓN Y FINANZAS
+
+Este módulo debe manejar como mínimo:
+
+Facturas
+registrar factura
+subir archivo PDF o imagen
+número de factura
+proveedor
+fecha de emisión
+fecha de vencimiento
+monto total
+moneda
+estado
+observaciones
+categoría o tipo
+centro de costo opcional
+responsable
+Estados de factura
+pendiente
+pagada
+vencida
+anulada
+observada
+programada para pago
+Funcionalidades
+filtros por fecha
+filtros por proveedor
+filtros por estado
+búsqueda rápida
+cambiar estado
+historial de cambios
+alertas por vencimiento
+vista detalle de factura
+línea de tiempo de acciones
+descarga de adjuntos
+exportar a Excel / PDF
+Proveedores
+crear proveedores
+RUC o identificación
+nombre comercial
+contacto
+correo
+teléfono
+dirección
+observaciones
+historial de facturas asociadas
+Cuentas por pagar
+programación de pagos
+calendario de vencimientos
+recordatorios
+semáforo visual:
+verde: al día
+amarillo: próximo a vencer
+rojo: vencido
+Reportes financieros
+por pagar
+pagadas
+vencidas
+por proveedor
+por rango de fechas
+por área
+por centro de costo
+C. MÓDULO RRHH
+
+Este módulo debe inspirarse en plataformas modernas de RRHH, pero con lógica propia.
+
+Gestión de empleados
+
+Campos básicos:
+
+nombres
+apellidos
+documento
+cargo
+área
+sede
+fecha de ingreso
+estado laboral
+tipo de contrato
+correo
+teléfono
+dirección
+contacto de emergencia
+observaciones
+Ficha del trabajador
+
+Cada trabajador debe tener una vista completa con:
+
+datos generales
+documentos asociados
+historial de tareos
+historial de asistencia
+historial de comunicados
+historial de boletas/documentos
+incidencias
+permisos o licencias
+archivos subidos
+Documentos del trabajador
+
+Subida y gestión de:
+
+contrato
+adendas
+boletas
+constancias
+memorandos
+reglamentos
+vacaciones
+licencias
+sanciones
+otros
+Comunicados internos
+publicar comunicados a todos
+publicar por área
+publicar por sede
+publicar por trabajador específico
+marcar como leído
+historial de lectura
+notificaciones visibles
+Legajo digital
+
+Cada trabajador debe tener un “expediente digital” ordenado y fácil de revisar.
+
+D. MÓDULO TAREO Y ASISTENCIA
+
+Debe ser uno de los módulos más útiles.
+
+Registro de tareos
+registro diario
+por trabajador
+por área
+por proyecto
+por turno
+por sede
+hora de entrada
+hora de salida
+horas trabajadas
+horas extras
+observaciones
+responsable que registra
+Asistencia
+presente
+ausente
+tardanza
+descanso
+vacaciones
+licencia
+falta justificada
+falta injustificada
+Funcionalidades
+vista diaria
+vista semanal
+vista mensual
+tabla por trabajador
+tabla por área
+filtro por proyecto
+edición rápida
+carga masiva
+exportación
+resumen de horas por periodo
+Reportes
+total horas por trabajador
+horas extras
+faltas
+tardanzas
+asistencia por área
+asistencia por sede
+Integración lógica
+
+Quiero que el tareo pueda en el futuro conectarse con:
+
+costos
+planillas
+proyectos
+productividad
+E. MÓDULO DOCUMENTAL
+
+Quiero una gestión documental transversal para toda la empresa.
+
+Debe permitir
+subir archivos
+clasificarlos
+asignarlos por módulo
+asignarlos a empleado, factura, proveedor o área
+búsqueda rápida
+filtros por tipo de archivo
+vista previa
+descarga
+historial de subida
+control de versiones básico si se puede
+Categorías
+RRHH
+Finanzas
+Legal
+Operaciones
+Seguridad
+Contratos
+Boletas
+Facturas
+Manuales
+Otros
+F. MÓDULO DE COMUNICACIÓN INTERNA
+muro de avisos
+comunicados oficiales
+anuncios urgentes
+avisos por área
+adjuntos
+notificaciones
+marcar como leído
+historial
+prioridad:
+baja
+media
+alta
+urgente
+G. MÓDULO DE REPORTES
+
+Debe existir una pestaña de reportes potente.
+
+Reportes por módulo
+finanzas
+RRHH
+tareos
+asistencia
+documentos
+comunicados
+proveedores
+Funciones
+filtros avanzados
+exportar Excel
+exportar PDF
+gráficos
+tablas
+resúmenes ejecutivos
+H. MÓDULO DE CONFIGURACIÓN EMPRESARIAL
+
+Cada empresa debe poder configurar:
+
+nombre
+logo
+RUC o identificación
+moneda
+zonas/áreas
+sedes
+cargos
+tipos de documento
+tipos de contrato
+estados personalizados
+permisos
+usuarios
+módulos activos
+colores básicos de marca
+5. ROLES Y PERMISOS
+
+Necesito un sistema serio de permisos.
+
+Roles base sugeridos
+Superadmin del sistema
+Admin de empresa
+RRHH
+Finanzas
+Supervisor
+Operador
+Trabajador/Empleado con acceso restringido
+Permisos por módulo
+
+Cada rol debe tener permisos como:
+
+ver
+crear
+editar
+eliminar
+aprobar
+exportar
+subir archivos
+descargar
+publicar comunicados
+
+No quiero permisos improvisados.
+Quiero una base preparada para control real.
+
+6. EXPERIENCIA DE USUARIO
+
+Quiero una interfaz moderna, empresarial y limpia.
+
+Diseño
+sidebar fijo elegante
+header superior limpio
+tarjetas con sombras suaves
+colores profesionales
+buen espaciado
+tablas modernas
+formularios bien organizados
+navegación intuitiva
+responsive real para móvil y desktop
+vistas agradables y rápidas
+UX
+minimizar clics
+acciones rápidas
+botones claros
+filtros visibles
+buscador global
+breadcrumbs
+estados visuales bien marcados
+loaders elegantes
+empty states bonitos
+mensajes de error claros
+confirmaciones bien hechas
+7. HOME / DASHBOARD
+
+Diseña una pantalla principal realmente útil.
+
+Debe incluir:
+
+resumen financiero
+resumen RRHH
+asistencia de hoy
+alertas importantes
+facturas próximas a vencer
+empleados con incidencias
+últimos comunicados
+actividad reciente
+gráficos por módulo
+panel ejecutivo
+
+Debe verse como producto premium.
+
+8. FLUJOS IMPORTANTES
+
+Quiero que pienses y construyas flujos lógicos, no solo páginas aisladas.
+
+Flujo factura
+crear proveedor si no existe
+registrar factura
+adjuntar PDF
+asignar estado
+guardar
+visualizar vencimiento
+cambiar a pagada
+dejar historial
+Flujo trabajador
+registrar trabajador
+asignar área/cargo
+subir documentos
+registrar asistencia/tareo
+publicar comunicado
+ver historial completo
+Flujo tareo
+elegir fecha
+elegir área o trabajador
+registrar horas
+validar datos
+guardar
+mostrar resumen inmediato
+Flujo de comunicación
+crear comunicado
+elegir destinatarios
+publicar
+notificar
+registrar lectura
+9. BASE DE DATOS
+
+Quiero una base de datos bien pensada y normalizada.
+
+Tablas sugeridas como mínimo:
+
+companies
+users
+roles
+permissions
+company_modules
+employees
+employee_documents
+invoices
+invoice_attachments
+suppliers
+payments
+attendance
+timesheets
+departments
+branches
+announcements
+announcement_reads
+files
+audit_logs
+notifications
+settings
+
+Cada tabla debe estar relacionada correctamente por empresa.
+
+Toda entidad empresarial debe tener company_id cuando corresponda.
+
+10. AUDITORÍA Y TRAZABILIDAD
+
+Quiero trazabilidad.
+
+Debe existir historial o audit log para acciones importantes:
+
+creación
+edición
+eliminación
+cambio de estado
+publicación
+aprobación
+
+Debe guardar:
+
+usuario
+fecha
+módulo
+acción
+registro afectado
+11. ALERTAS Y AUTOMATIZACIONES
+
+Quiero lógica automática básica desde la primera versión.
+
+Alertas sugeridas
+factura próxima a vencer
+factura vencida
+documento faltante de trabajador
+trabajador sin tareo
+comunicado urgente sin leer
+asistencia incompleta
+Automatizaciones básicas
+cálculo automático de vencidos
+semáforo visual
+resumen diario en dashboard
+indicadores actualizados automáticamente
+12. REQUISITOS DE DESARROLLO
+
+Quiero que construyas esto de forma profesional.
+
+Necesito:
+estructura de carpetas ordenada
+componentes reutilizables
+código limpio
+backend organizado por módulos
+validaciones
+manejo de errores
+buenas prácticas
+sistema escalable
+semilla de datos iniciales
+README claro
+variables de entorno bien definidas
+13. ENTREGABLES QUE QUIERO
+
+Quiero que desarrolles y me entregues:
+
+A. MVP funcional
+
+Con:
+
+autenticación
+multiempresa
+dashboard
+módulo de facturas
+módulo de proveedores
+módulo de empleados
+módulo de tareo
+módulo de comunicados
+módulo documental básico
+roles y permisos básicos
+reportes básicos
+B. Diseño moderno y usable
+
+No quiero interfaces simples o genéricas.
+Quiero algo profesional y visualmente atractivo.
+
+C. Base lista para escalar
+
+Que luego permita añadir:
+
+planillas
+firmas
+aprobaciones avanzadas
+inventario
+compras
+centros de costo más complejos
+IA
+integraciones
+14. PRIORIDAD DE CONSTRUCCIÓN
+
+Construye por fases internas, pero deja el proyecto integrado.
+
+Fase 1
+autenticación
+multiempresa
+layout general
+dashboard inicial
+Fase 2
+facturas
+proveedores
+cuentas por pagar
+Fase 3
+empleados
+documentos laborales
+comunicados
+Fase 4
+tareo
+asistencia
+reportes
+Fase 5
+documentos transversales
+auditoría
+alertas
+15. IMPORTANTE SOBRE LA VISIÓN DEL PRODUCTO
+
+No quiero una app de ejemplo.
+No quiero pantallas sueltas sin lógica.
+No quiero un diseño anticuado.
+
+Quiero un producto SaaS que se sienta:
+
+serio
+vendible
+modular
+limpio
+corporativo
+adaptable
+rápido
+moderno
+útil para empresas reales
+
+Quiero que la lógica del sistema esté pensada para que luego pueda venderse como suscripción mensual a varias empresas.
+
+16. EXTRA: DIFERENCIADOR DEL PRODUCTO
+
+Añade una lógica pensada para que este SaaS destaque por:
+
+simplicidad de uso
+rapidez
+estructura modular
+buena visualización
+excelente panel gerencial
+orden documental
+unión de administración + RRHH + control operativo
+
+Debe sentirse como una mezcla bien diseñada entre:
+
+ERP
+RRHH
+gestor documental
+panel administrativo
+
+pero sin volverse pesado ni complicado.
+
+17. QUÉ ESPERO DE TI
+
+Quiero que empieces construyendo la base real del sistema, no solo mockups.
+
+Haz lo siguiente:
+
+define la arquitectura
+crea la base del proyecto
+genera el esquema de base de datos
+crea el layout moderno
+implementa autenticación
+implementa multiempresa
+desarrolla módulos principales
+deja datos demo para poder probar
+deja todo estructurado para seguir creciendo
+
+Si necesitas tomar decisiones técnicas, prioriza:
+
+escalabilidad
+claridad
+facilidad de mantenimiento
+experiencia de usuario
+enfoque SaaS real
