@@ -5,6 +5,9 @@ import {
   useGetFinanceReport,
   useGetAttendanceReport,
   useGetHrReport,
+  getGetFinanceReportQueryKey,
+  getGetAttendanceReportQueryKey,
+  getGetHrReportQueryKey,
 } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,9 +81,9 @@ export default function Reports() {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
 
-  const { data: financeReport, isLoading: loadingFinance } = useGetFinanceReport(companyId, { startDate, endDate }, { query: { enabled: !!companyId }});
-  const { data: attReport, isLoading: loadingAtt } = useGetAttendanceReport(companyId, { startDate, endDate }, { query: { enabled: !!companyId }});
-  const { data: hrReport, isLoading: loadingHr } = useGetHrReport(companyId, { query: { enabled: !!companyId }});
+  const { data: financeReport, isLoading: loadingFinance } = useGetFinanceReport(companyId, { startDate, endDate }, { query: { enabled: !!companyId, queryKey: getGetFinanceReportQueryKey(companyId, { startDate, endDate }) }});
+  const { data: attReport, isLoading: loadingAtt } = useGetAttendanceReport(companyId, { startDate, endDate }, { query: { enabled: !!companyId, queryKey: getGetAttendanceReportQueryKey(companyId, { startDate, endDate }) }});
+  const { data: hrReport, isLoading: loadingHr } = useGetHrReport(companyId, { query: { enabled: !!companyId, queryKey: getGetHrReportQueryKey(companyId) }});
 
   return (
     <AppLayout>

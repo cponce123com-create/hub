@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db, suppliersTable, invoicesTable } from "@workspace/db";
+import { CreateSupplierBody, UpdateSupplierBody } from "@workspace/api-zod";
 import { eq, and, ilike, count, sum, sql } from "drizzle-orm";
 
 const router = Router();
@@ -32,7 +33,11 @@ router.get("/companies/:companyId/suppliers", async (req, res) => {
 router.post("/companies/:companyId/suppliers", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateSupplierBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [supplier] = await db.insert(suppliersTable).values({ companyId, ...body }).returning();
     return res.status(201).json({ ...supplier, invoiceCount: 0, totalBilled: 0, createdAt: supplier.createdAt.toISOString() });
   } catch (err) {
@@ -61,7 +66,11 @@ router.put("/companies/:companyId/suppliers/:supplierId", async (req, res) => {
     const companyId = parseInt(req.params.companyId);
     const supplierId = parseInt(req.params.supplierId);
     if (isNaN(supplierId)) return res.status(400).json({ error: "ID de proveedor inválido" });
-    const body = req.body;
+    const parsed = UpdateSupplierBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [supplier] = await db.update(suppliersTable).set(body).where(and(eq(suppliersTable.id, supplierId), eq(suppliersTable.companyId, companyId))).returning();
     if (!supplier) return res.status(404).json({ error: "Not found" });
     const invRows = await db.select({ cnt: count(), total: sum(invoicesTable.amount) }).from(invoicesTable).where(eq(invoicesTable.supplierId, supplierId));

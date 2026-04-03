@@ -44,8 +44,8 @@ export default function Settings() {
     ruc: company?.ruc ?? "",
     industry: company?.industry ?? "",
     address: company?.address ?? "",
-    city: company?.city ?? "Lima",
-    country: company?.country ?? "Peru",
+    city: (company as unknown as Record<string, string>)?.city ?? "Lima",
+    country: (company as unknown as Record<string, string>)?.country ?? "Peru",
   });
 
   const [profileForm, setProfileForm] = useState({

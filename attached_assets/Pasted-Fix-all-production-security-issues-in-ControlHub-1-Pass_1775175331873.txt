@@ -1,0 +1,25 @@
+Fix all production security issues in ControlHub:
+1. Password hashing (CRITICAL)
+Install bcrypt in artifacts/api-server. In lib/db/src/lib/seed.ts, hash all passwords with bcrypt.hash(password, 10) before inserting. In artifacts/api-server/src/routes/auth.ts, replace password === "password" || user.passwordHash === password with await bcrypt.compare(password, user.passwordHash).
+2. Auth middleware (CRITICAL)
+In artifacts/api-server/src/app.ts, create a requireAuth middleware that returns 401 if req.session?.userId is missing. Apply it to all routes under /api/companies in artifacts/api-server/src/routes/index.ts.
+3. Multi-tenant isolation (CRITICAL)
+In every route handler that receives companyId from the URL params, add a check: if parseInt(req.params.companyId) !== req.session?.companyId, return 403 Forbidden. Apply this to all routes in employees.ts, invoices.ts, suppliers.ts, attendance.ts, documents.ts, announcements.ts, dashboard.ts, reports.ts, and users.ts.
+4. Persistent sessions (CRITICAL)
+Replace the in-memory sessions object in artifacts/api-server/src/app.ts with express-session + connect-pg-simple using the existing DATABASE_URL. Cookie options: httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict". Secret from process.env.SESSION_SECRET.
+5. Environment variable validation (IMPORTANT)
+Create artifacts/api-server/src/lib/env.ts that uses the existing zod/v4 to validate and export DATABASE_URL, SESSION_SECRET (min 32 chars), NODE_ENV, and ALLOWED_ORIGINS. Import and run this at the top of artifacts/api-server/src/index.ts so the server fails fast on missing config.
+6. Zod validation in all route handlers (IMPORTANT)
+Import the already-generated schemas from @workspace/api-zod in each route file. Use .safeParse(req.body) at the start of every POST and PUT handler. Return 400 with error.flatten() if validation fails.
+7. URL param validation (IMPORTANT)
+In every route handler that calls parseInt(req.params.*), add a isNaN() check immediately after. Return 400 { error: "Invalid id" } if the result is NaN.
+8. JSON body size limit (IMPORTANT)
+In artifacts/api-server/src/app.ts, add { limit: "1mb" } to both express.json() and express.urlencoded().
+9. Security headers + rate limiting (IMPORTANT)
+Install helmet and express-rate-limit in artifacts/api-server. Add app.use(helmet()) near the top of app.ts. Add a rate limiter of max 20 requests per 15 minutes applied only to POST /api/auth/login.
+10. Restrictive CORS (IMPORTANT)
+Replace cors({ origin: true, credentials: true }) with cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") ?? [], credentials: true }).
+11. Frontend: global 401 handler (IMPROVEMENT)
+In artifacts/controlhub/src/App.tsx, add a QueryCache to the QueryClient with an onError callback that redirects to /login when the error status is 401.
+
+After all changes, run pnpm run typecheck and fix any TypeScript errors. Do not change the DB schema, the OpenAPI spec, or any UI component.

@@ -97,7 +97,7 @@ export default function Employees() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
 
-  const { data: employees, isLoading } = useListEmployees(companyId, {
+  const { data: employees, isLoading } = useListEmployees(companyId, undefined, {
     query: { enabled: !!companyId, queryKey: getListEmployeesQueryKey(companyId) }
   });
 

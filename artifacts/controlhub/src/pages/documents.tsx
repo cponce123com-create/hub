@@ -7,6 +7,7 @@ import {
   useDeleteDocument,
   useListEmployees,
   getListDocumentsQueryKey,
+  getListEmployeesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,7 @@ export default function Documents() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<DocForm>(emptyForm);
 
-  const { data: documents, isLoading } = useListDocuments(companyId, {
+  const { data: documents, isLoading } = useListDocuments(companyId, undefined, {
     query: { enabled: !!companyId, queryKey: getListDocumentsQueryKey(companyId) }
   });
 
@@ -99,7 +100,7 @@ export default function Documents() {
     return matchCat && matchSearch;
   });
 
-  const { data: employees } = useListEmployees(companyId, { query: { enabled: !!companyId } });
+  const { data: employees } = useListEmployees(companyId, undefined, { query: { enabled: !!companyId, queryKey: getListEmployeesQueryKey(companyId) } });
 
   const createMutation = useCreateDocument({
     mutation: {

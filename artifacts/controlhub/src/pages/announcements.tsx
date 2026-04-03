@@ -77,7 +77,7 @@ export default function Announcements() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<AnnForm>(emptyForm);
 
-  const { data: announcements, isLoading } = useListAnnouncements(companyId, {
+  const { data: announcements, isLoading } = useListAnnouncements(companyId, undefined, {
     query: { enabled: !!companyId, queryKey: getListAnnouncementsQueryKey(companyId) }
   });
 

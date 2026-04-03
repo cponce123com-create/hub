@@ -8,6 +8,7 @@ import {
   useDeleteInvoice,
   useListSuppliers,
   getListInvoicesQueryKey,
+  getListSuppliersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -108,7 +109,7 @@ export default function Invoices() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<InvoiceForm>(emptyForm);
 
-  const { data: invoices, isLoading } = useListInvoices(companyId, {
+  const { data: invoices, isLoading } = useListInvoices(companyId, undefined, {
     query: {
       enabled: !!companyId,
       queryKey: getListInvoicesQueryKey(companyId)
@@ -121,8 +122,8 @@ export default function Invoices() {
     return matchStatus && matchSearch;
   });
 
-  const { data: suppliers } = useListSuppliers(companyId, {
-    query: { enabled: !!companyId }
+  const { data: suppliers } = useListSuppliers(companyId, undefined, {
+    query: { enabled: !!companyId, queryKey: getListSuppliersQueryKey(companyId) }
   });
 
   const createMutation = useCreateInvoice({

@@ -67,7 +67,7 @@ export default function Suppliers() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<SupplierForm>(emptyForm);
 
-  const { data: suppliers, isLoading } = useListSuppliers(companyId, { 
+  const { data: suppliers, isLoading } = useListSuppliers(companyId, undefined, { 
     query: { enabled: !!companyId, queryKey: getListSuppliersQueryKey(companyId) }
   });
 

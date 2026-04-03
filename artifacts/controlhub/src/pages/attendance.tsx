@@ -8,6 +8,7 @@ import {
   useDeleteAttendance,
   useListEmployees,
   getListAttendanceQueryKey,
+  getListEmployeesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -101,13 +102,14 @@ export default function Attendance() {
   const [form, setForm] = useState<AttForm>(emptyForm);
 
   const { data: records, isLoading } = useListAttendance(companyId, {
-    query: { enabled: !!companyId, queryKey: getListAttendanceQueryKey(companyId) },
     startDate: dateFilter || undefined,
     endDate: dateFilter || undefined,
     area: areaFilter !== "all" ? areaFilter : undefined,
+  }, {
+    query: { enabled: !!companyId, queryKey: getListAttendanceQueryKey(companyId) },
   });
 
-  const { data: employees } = useListEmployees(companyId, { query: { enabled: !!companyId } });
+  const { data: employees } = useListEmployees(companyId, undefined, { query: { enabled: !!companyId, queryKey: getListEmployeesQueryKey(companyId) } });
   const areas = [...new Set(employees?.map(e => e.area) ?? [])].filter(Boolean);
 
   const createMutation = useCreateAttendance({

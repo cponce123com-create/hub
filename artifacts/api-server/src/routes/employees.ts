@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, employeesTable, attendanceTable, documentsTable, announcementsTable } from "@workspace/db";
 import { eq, and, ilike, or, count, sql } from "drizzle-orm";
+import { CreateEmployeeBody, UpdateEmployeeBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -40,7 +41,11 @@ router.get("/companies/:companyId/employees", async (req, res) => {
 router.post("/companies/:companyId/employees", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateEmployeeBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [employee] = await db.insert(employeesTable).values({
       companyId,
       firstName: body.firstName,
@@ -115,7 +120,11 @@ router.put("/companies/:companyId/employees/:employeeId", async (req, res) => {
     const companyId = parseInt(req.params.companyId);
     const employeeId = parseInt(req.params.employeeId);
     if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
-    const body = req.body;
+    const parsed = UpdateEmployeeBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [employee] = await db.update(employeesTable).set({
       firstName: body.firstName, lastName: body.lastName, position: body.position,
       area: body.area, site: body.site, contractType: body.contractType,

@@ -3,6 +3,7 @@ import { db, usersTable, companiesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import rateLimit from "express-rate-limit";
+import { LoginBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -16,10 +17,11 @@ const loginLimiter = rateLimit({
 
 router.post("/auth/login", loginLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Correo y contraseña son requeridos" });
+    const parsed = LoginBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
     }
+    const { email, password } = parsed.data;
 
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.email, email),

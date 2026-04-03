@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, attendanceTable, employeesTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
+import { CreateAttendanceBody, UpdateAttendanceBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -45,7 +46,11 @@ router.get("/companies/:companyId/attendance", async (req, res) => {
 router.post("/companies/:companyId/attendance", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateAttendanceBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     let hoursWorked: string | null = null;
     if (body.checkIn && body.checkOut) {
       const [inH, inM] = body.checkIn.split(":").map(Number);
@@ -83,7 +88,11 @@ router.put("/companies/:companyId/attendance/:attendanceId", async (req, res) =>
     const companyId = parseInt(req.params.companyId);
     const attendanceId = parseInt(req.params.attendanceId);
     if (isNaN(attendanceId)) return res.status(400).json({ error: "ID de registro inválido" });
-    const body = req.body;
+    const parsed = UpdateAttendanceBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const updates: Record<string, unknown> = {};
     if (body.checkIn !== undefined) updates.checkIn = body.checkIn;
     if (body.checkOut !== undefined) updates.checkOut = body.checkOut;

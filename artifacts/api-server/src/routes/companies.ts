@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, companiesTable, employeesTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
+import { CreateCompanyBody, UpdateCompanyBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -27,10 +28,11 @@ router.get("/companies", async (req, res) => {
 
 router.post("/companies", async (req, res) => {
   try {
-    const { name, ruc, currency, industry, address, email, phone, activeModules } = req.body;
-    if (!name || !currency) {
-      return res.status(400).json({ error: "name and currency are required" });
+    const parsed = CreateCompanyBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
     }
+    const { name, ruc, currency, industry, address, email, phone, activeModules } = parsed.data;
     const [company] = await db.insert(companiesTable).values({
       name,
       ruc,
@@ -74,7 +76,11 @@ router.get("/companies/:companyId", async (req, res) => {
 router.put("/companies/:companyId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const { name, ruc, currency, industry, address, email, phone, activeModules } = req.body;
+    const parsed = UpdateCompanyBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const { name, ruc, currency, industry, address, email, phone, activeModules } = parsed.data;
     const [company] = await db.update(companiesTable).set({
       name, ruc, currency, industry, address, email, phone, activeModules,
     }).where(eq(companiesTable.id, companyId)).returning();

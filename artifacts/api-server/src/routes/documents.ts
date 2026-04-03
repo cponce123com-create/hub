@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, documentsTable, employeesTable } from "@workspace/db";
 import { eq, and, ilike, sql } from "drizzle-orm";
+import { CreateDocumentBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -39,7 +40,11 @@ router.get("/companies/:companyId/documents", async (req, res) => {
 router.post("/companies/:companyId/documents", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateDocumentBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [doc] = await db.insert(documentsTable).values({
       companyId,
       employeeId: body.employeeId,
@@ -49,7 +54,7 @@ router.post("/companies/:companyId/documents", async (req, res) => {
       fileType: body.fileType,
       fileSize: body.fileSize,
       notes: body.notes,
-      uploadedBy: body.uploadedBy || "Admin",
+      uploadedBy: (req.body as Record<string, string>).uploadedBy || "Admin",
     }).returning();
     return res.status(201).json({ ...doc, employeeName: null, createdAt: doc.createdAt.toISOString() });
   } catch (err) {

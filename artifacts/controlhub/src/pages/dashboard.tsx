@@ -3,7 +3,10 @@ import { AppLayout } from "@/components/layout";
 import {
   useGetDashboardSummary,
   useGetRecentActivity,
-  useGetDashboardAlerts
+  useGetDashboardAlerts,
+  getGetDashboardSummaryQueryKey,
+  getGetRecentActivityQueryKey,
+  getGetDashboardAlertsQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -24,15 +27,15 @@ export default function Dashboard() {
   const { companyId } = useCompany();
 
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary(companyId, {
-    query: { enabled: !!companyId }
+    query: { enabled: !!companyId, queryKey: getGetDashboardSummaryQueryKey(companyId) }
   });
 
   const { data: activity, isLoading: loadingActivity } = useGetRecentActivity(companyId, { limit: 10 }, {
-    query: { enabled: !!companyId }
+    query: { enabled: !!companyId, queryKey: getGetRecentActivityQueryKey(companyId, { limit: 10 }) }
   });
 
   const { data: alerts, isLoading: loadingAlerts } = useGetDashboardAlerts(companyId, {
-    query: { enabled: !!companyId }
+    query: { enabled: !!companyId, queryKey: getGetDashboardAlertsQueryKey(companyId) }
   });
 
   return (

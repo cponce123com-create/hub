@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, announcementsTable, announcementReadsTable } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
+import { CreateAnnouncementBody, UpdateAnnouncementBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -38,7 +39,11 @@ router.get("/companies/:companyId/announcements", async (req, res) => {
 router.post("/companies/:companyId/announcements", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateAnnouncementBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [ann] = await db.insert(announcementsTable).values({
       companyId,
       title: body.title,
@@ -60,7 +65,11 @@ router.put("/companies/:companyId/announcements/:announcementId", async (req, re
     const companyId = parseInt(req.params.companyId);
     const announcementId = parseInt(req.params.announcementId);
     if (isNaN(announcementId)) return res.status(400).json({ error: "ID de comunicado inválido" });
-    const body = req.body;
+    const parsed = UpdateAnnouncementBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const updates: Record<string, unknown> = {};
     if (body.title !== undefined) updates.title = body.title;
     if (body.content !== undefined) updates.content = body.content;

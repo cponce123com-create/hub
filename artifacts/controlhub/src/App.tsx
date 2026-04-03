@@ -1,5 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CompanyProvider, useCompany } from "@/context/CompanyContext";
@@ -16,12 +16,6 @@ import Documents from "@/pages/documents";
 import Announcements from "@/pages/announcements";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, staleTime: 30000 },
-  },
-});
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user } = useCompany();
@@ -76,18 +70,44 @@ function Router() {
   );
 }
 
-function App() {
+function AppWithQueryClient() {
+  const [, setLocation] = useLocation();
+
+  const queryClient = new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error: unknown) => {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "status" in error &&
+          (error as { status: number }).status === 401
+        ) {
+          setLocation("/login");
+        }
+      },
+    }),
+    defaultOptions: {
+      queries: { retry: 1, staleTime: 30000 },
+    },
+  });
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <CompanyProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-        </CompanyProvider>
+        <Router />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
+  );
+}
+
+function App() {
+  return (
+    <CompanyProvider>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <AppWithQueryClient />
+      </WouterRouter>
+    </CompanyProvider>
   );
 }
 

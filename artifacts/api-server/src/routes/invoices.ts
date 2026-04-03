@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, invoicesTable, suppliersTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
+import { CreateInvoiceBody, UpdateInvoiceBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -41,7 +42,11 @@ router.get("/companies/:companyId/invoices", async (req, res) => {
 router.post("/companies/:companyId/invoices", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const body = req.body;
+    const parsed = CreateInvoiceBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const [invoice] = await db.insert(invoicesTable).values({
       companyId,
       supplierId: body.supplierId,
@@ -92,7 +97,11 @@ router.put("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
     const companyId = parseInt(req.params.companyId);
     const invoiceId = parseInt(req.params.invoiceId);
     if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
-    const body = req.body;
+    const parsed = UpdateInvoiceBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
+    }
+    const body = parsed.data;
     const updates: Record<string, unknown> = {};
     if (body.supplierId !== undefined) updates.supplierId = body.supplierId;
     if (body.invoiceNumber !== undefined) updates.invoiceNumber = body.invoiceNumber;
