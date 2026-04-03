@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -73,7 +74,7 @@ function Router() {
 function AppWithQueryClient() {
   const [, setLocation] = useLocation();
 
-  const queryClient = new QueryClient({
+  const [queryClient] = useState(() => new QueryClient({
     queryCache: new QueryCache({
       onError: (error: unknown) => {
         if (
@@ -89,7 +90,7 @@ function AppWithQueryClient() {
     defaultOptions: {
       queries: { retry: 1, staleTime: 30000 },
     },
-  });
+  }));
 
   return (
     <QueryClientProvider client={queryClient}>

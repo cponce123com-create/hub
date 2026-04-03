@@ -7,6 +7,7 @@ import pinoHttp from "pino-http";
 import { randomBytes } from "crypto";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { env } from "./lib/env";
 
 declare module "express-session" {
   interface SessionData {
@@ -14,11 +15,6 @@ declare module "express-session" {
     companyId?: number;
     role?: string;
   }
-}
-
-if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
-  logger.error("SESSION_SECRET must be set in production. Exiting.");
-  process.exit(1);
 }
 
 const PgStore = connectPgSimple(session);
@@ -43,9 +39,9 @@ app.use(
   }),
 );
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : [process.env.CORS_ORIGIN || "http://localhost:24710"];
+const allowedOrigins = env.ALLOWED_ORIGINS
+  ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : [process.env["CORS_ORIGIN"] || "http://localhost:24710"];
 
 app.use(
   cors({
@@ -60,16 +56,16 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(
   session({
     store: new PgStore({
-      conString: process.env.DATABASE_URL,
+      conString: env.DATABASE_URL,
       tableName: "user_sessions",
     }),
-    secret: process.env.SESSION_SECRET || "controlhub-dev-secret-change-in-prod",
+    secret: env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     genid: () => randomBytes(32).toString("hex"),
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000,
     },

@@ -1,0 +1,89 @@
+Realiza las siguientes mejoras de optimización, corrección y seguridad en el proyecto ControlHub. Hazlas en orden de prioridad:
+
+---
+
+## 🔴 CRÍTICO — Seguridad y Correctitud
+
+### 1. Dashboard: N+1 queries en anuncios no leídos
+En `artifacts/api-server/src/routes/dashboard.ts`, el endpoint `/dashboard/summary` tiene un loop `Promise.all` que hace una query a la DB por cada anuncio para saber si fue leído. Reemplázalo con una sola query usando `notInArray` o una subquery con Drizzle para obtener todos los IDs ya leídos por el usuario, y calcular `unreadCount` sin iteración por anuncio.
+
+### 2. Dashboard: Carga completa de tablas en memoria
+En el mismo archivo, el endpoint carga TODOS los employees e invoices de la empresa con `db.select()` sin límite para luego filtrarlos en JS. Reemplaza los cálculos de métricas (totalPending, totalOverdue, activeEmployees, etc.) con agregaciones SQL usando `count()` y `sum()` de Drizzle directamente en la DB.
+
+### 3. Attendance: Filtro de `area` aplicado en JS, no en SQL
+En `artifacts/api-server/src/routes/attendance.ts`, el filtro por `area` se hace con `.filter()` en el array ya devuelto por la DB, DESPUÉS de aplicar `limit` y `offset`. Esto rompe la paginación. Añade `area` al JOIN con `employeesTable` como condición SQL: `if (area) conditions.push(eq(employeesTable.area, area))`.
+
+### 4. Pool de conexiones sin configuración
+En `lib/db/src/index.ts`, el `Pool` se crea sin opciones. Añade configuración mínima:
+```ts
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+```
+
+### 5. companyId sin validación NaN en varios endpoints
+En `employees.ts`, `invoices.ts`, `attendance.ts`, `dashboard.ts` y otros, se hace `parseInt(req.params.companyId)` sin verificar `isNaN()`. Añade la misma guarda que ya existe para `employeeId` e `invoiceId`:
+```ts
+if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
+```
+
+---
+
+## 🟠 IMPORTANTE — Calidad y Consistencia
+
+### 6. Mensajes de error inconsistentes (español vs inglés)
+Los errores de negocio están en español pero varios 404/500 genéricos están en inglés ("Not found", "Employee not found", "Internal server error"). Unifica todos en español:
+- "Not found" → "No encontrado"
+- "Employee not found" → "Empleado no encontrado"  
+- "Internal server error" → "Error interno del servidor"
+
+### 7. DELETE sin verificar existencia
+Los endpoints DELETE en `employees.ts`, `invoices.ts`, `attendance.ts`, `documents.ts`, `suppliers.ts` hacen el delete directo sin verificar si el registro existe, por lo que siempre devuelven 200 aunque el ID no exista. Añade `.returning()` y si el array está vacío, responde 404.
+
+### 8. Reports: Misma lógica de "últimos 6 meses" duplicada
+La lógica del loop de meses está duplicada entre `dashboard.ts` y `reports.ts`. Extrae una función helper `getLast6MonthsRange()` en `lib/utils.ts` o en un archivo de helpers compartidos y reutilízala.
+
+### 9. GET /employees/:id carga anuncios recientes que no son del empleado
+En `employees.ts`, el endpoint de detalle de empleado carga los últimos 3 anuncios de toda la empresa y los devuelve como `recentAnnouncements` del empleado, lo que no tiene sentido semántico. O elimina ese campo del response del empleado, o muévelo a un endpoint separado.
+
+### 10. `uploadedBy` y `publishedBy` hardcodeados como "Admin"
+En `documents.ts` y `announcements.ts`, los campos `uploadedBy` y `publishedBy` se guardan como el string estático `"Admin"` en lugar de usar el nombre o email del usuario de sesión. Reemplázalos con:
+```ts
+const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, req.session.userId!) });
+uploadedBy: user?.name ?? "Admin"
+```
+
+---
+
+## 🟡 OPTIMIZACIÓN — Performance
+
+### 11. Reports finance: Carga toda la tabla en memoria para aggregar
+En `reports.ts`, el endpoint de finanzas carga TODAS las facturas que coincidan con el filtro y luego agrupa por status y supplier en JS. Reemplaza con queries SQL agrupadas usando `groupBy` de Drizzle, que es más eficiente a escala.
+
+### 12. Índices DB sugeridos
+Añade los siguientes índices en los schemas de Drizzle para las queries más frecuentes:
+- `attendance.ts` schema: índice en `(company_id, date)`
+- `invoices.ts` schema: índice en `(company_id, status)`
+- `employees.ts` schema: índice en `(company_id, status)`
+Usa `index()` de `drizzle-orm/pg-core` y ejecuta `pnpm --filter @workspace/db run push`.
+
+---
+
+## 🔵 MEJORAS MENORES
+
+### 13. `cookie-parser` instalado pero no usado
+En `package.json` de api-server, `cookie-parser` está como dependencia pero no se importa ni usa en `app.ts`. Elimínalo con `pnpm --filter @workspace/api-server remove cookie-parser` y quita su `@types/cookie-parser`.
+
+### 14. `env.ts` y validación en `app.ts` están duplicadas
+La validación de `SESSION_SECRET` en producción existe tanto en `app.ts` como en `lib/env.ts`. Elimina la de `app.ts` y deja solo la de `env.ts` como única fuente de verdad. Importa `env` en `app.ts` en lugar de leer `process.env` directamente.
+
+### 15. Frontend: QueryClient se recrea en cada render
+En `App.tsx`, `new QueryClient(...)` está dentro del componente `AppWithQueryClient`, lo que lo recrea en cada re-render. Muévelo fuera del componente o usa `useState` / `useRef` para persistirlo:
+```tsx
+const [queryClient] = useState(() => new QueryClient({ ... }));
+```
+
+Aplica todos los cambios, verifica que el TypeScript compile sin errores con `pnpm run typecheck`, y confirma que el servidor arranca correctamente.

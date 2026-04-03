@@ -1,71 +1,87 @@
 import { Router } from "express";
 import { db, invoicesTable, suppliersTable, employeesTable, attendanceTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, count, sum } from "drizzle-orm";
+import { getLast6MonthsLabels } from "../lib/helpers";
 
 const router = Router();
 
 router.get("/companies/:companyId/reports/finance", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const { startDate, endDate } = req.query as Record<string, string>;
 
     const conditions = [eq(invoicesTable.companyId, companyId)];
     if (startDate) conditions.push(sql`${invoicesTable.issueDate} >= ${startDate}`);
     if (endDate) conditions.push(sql`${invoicesTable.issueDate} <= ${endDate}`);
 
-    const invoices = await db
-      .select({ invoice: invoicesTable, supplierName: suppliersTable.name })
+    // SQL aggregation by status
+    const byStatusRaw = await db
+      .select({ status: invoicesTable.status, cnt: count(), total: sum(invoicesTable.amount) })
+      .from(invoicesTable)
+      .where(and(...conditions))
+      .groupBy(invoicesTable.status);
+
+    let totalInvoiced = 0, totalPaid = 0, totalPending = 0, totalOverdue = 0;
+    const byStatus = byStatusRaw.map(row => {
+      const amt = parseFloat(row.total ?? "0");
+      totalInvoiced += amt;
+      if (row.status === "paid") totalPaid = amt;
+      if (row.status === "pending") totalPending = amt;
+      if (row.status === "overdue") totalOverdue = amt;
+      return { status: row.status, count: Number(row.cnt), amount: amt };
+    });
+
+    // SQL aggregation by supplier (top 10)
+    const bySupplierRaw = await db
+      .select({
+        supplierName: suppliersTable.name,
+        invoiceCount: count(),
+        totalAmount: sum(invoicesTable.amount),
+      })
       .from(invoicesTable)
       .leftJoin(suppliersTable, eq(invoicesTable.supplierId, suppliersTable.id))
-      .where(and(...conditions));
+      .where(and(...conditions))
+      .groupBy(suppliersTable.name)
+      .orderBy(sql`sum(${invoicesTable.amount}) DESC`)
+      .limit(10);
 
-    const total = invoices.reduce((s, { invoice }) => s + parseFloat(invoice.amount), 0);
-    const paid = invoices.filter(({ invoice }) => invoice.status === "paid").reduce((s, { invoice }) => s + parseFloat(invoice.amount), 0);
-    const pending = invoices.filter(({ invoice }) => invoice.status === "pending").reduce((s, { invoice }) => s + parseFloat(invoice.amount), 0);
-    const overdue = invoices.filter(({ invoice }) => invoice.status === "overdue").reduce((s, { invoice }) => s + parseFloat(invoice.amount), 0);
+    const bySupplier = bySupplierRaw.map(row => ({
+      supplierName: row.supplierName ?? "Desconocido",
+      invoiceCount: Number(row.invoiceCount),
+      totalAmount: parseFloat(row.totalAmount ?? "0"),
+    }));
 
-    const statusGroups: Record<string, { count: number; amount: number }> = {};
-    invoices.forEach(({ invoice }) => {
-      if (!statusGroups[invoice.status]) statusGroups[invoice.status] = { count: 0, amount: 0 };
-      statusGroups[invoice.status].count++;
-      statusGroups[invoice.status].amount += parseFloat(invoice.amount);
-    });
+    // Monthly trend — limited date range for last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const trendInvoices = await db
+      .select({ issueDate: invoicesTable.issueDate, amount: invoicesTable.amount })
+      .from(invoicesTable)
+      .where(and(eq(invoicesTable.companyId, companyId), sql`${invoicesTable.issueDate} >= ${sixMonthsAgo.toISOString().split("T")[0]}`));
 
-    const supplierGroups: Record<string, { invoiceCount: number; totalAmount: number }> = {};
-    invoices.forEach(({ invoice, supplierName }) => {
-      const name = supplierName ?? "Unknown";
-      if (!supplierGroups[name]) supplierGroups[name] = { invoiceCount: 0, totalAmount: 0 };
-      supplierGroups[name].invoiceCount++;
-      supplierGroups[name].totalAmount += parseFloat(invoice.amount);
-    });
-
-    // Monthly trend (last 6 months)
-    const monthlyTrend = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthStr = d.toISOString().substring(0, 7);
-      const label = d.toLocaleString("es-PE", { month: "short", year: "numeric" });
-      const amount = invoices.filter(({ invoice }) => invoice.issueDate.startsWith(monthStr)).reduce((s, { invoice }) => s + parseFloat(invoice.amount), 0);
-      monthlyTrend.push({ month: label, amount });
-    }
+    const monthlyTrend = getLast6MonthsLabels().map(({ monthStr, label }) => ({
+      month: label,
+      amount: trendInvoices.filter(i => i.issueDate.startsWith(monthStr)).reduce((s, i) => s + parseFloat(i.amount), 0),
+    }));
 
     return res.json({
       period: `${startDate ?? "all"} - ${endDate ?? "all"}`,
-      summary: { totalInvoiced: total, totalPaid: paid, totalPending: pending, totalOverdue: overdue },
-      byStatus: Object.entries(statusGroups).map(([status, data]) => ({ status, count: data.count, amount: data.amount })),
-      bySupplier: Object.entries(supplierGroups).map(([supplierName, data]) => ({ supplierName, ...data })).sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 10),
+      summary: { totalInvoiced, totalPaid, totalPending, totalOverdue },
+      byStatus,
+      bySupplier,
       monthlyTrend,
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/reports/attendance", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const { startDate, endDate, employeeId } = req.query as Record<string, string>;
 
     const conditions = [eq(attendanceTable.companyId, companyId)];
@@ -88,7 +104,7 @@ router.get("/companies/:companyId/reports/attendance", async (req, res) => {
     const byEmployee: Record<string, { employeeName: string; area: string; presentDays: number; absentDays: number; lateDays: number; hoursWorked: number }> = {};
     records.forEach(r => {
       const key = `${r.att.employeeId}`;
-      const name = r.firstName ? `${r.firstName} ${r.lastName}` : "Unknown";
+      const name = r.firstName ? `${r.firstName} ${r.lastName}` : "Desconocido";
       if (!byEmployee[key]) byEmployee[key] = { employeeName: name, area: r.area ?? "", presentDays: 0, absentDays: 0, lateDays: 0, hoursWorked: 0 };
       if (r.att.status === "present") byEmployee[key].presentDays++;
       else if (r.att.status === "absent" || r.att.status === "unjustified_absence") byEmployee[key].absentDays++;
@@ -98,16 +114,22 @@ router.get("/companies/:companyId/reports/attendance", async (req, res) => {
 
     const byArea: Record<string, { attendanceRate: number; employeeCount: number; present: number; total: number }> = {};
     records.forEach(r => {
-      const area = r.area ?? "Sin area";
+      const area = r.area ?? "Sin área";
       if (!byArea[area]) byArea[area] = { attendanceRate: 0, employeeCount: 0, present: 0, total: 0 };
       byArea[area].total++;
       if (r.att.status === "present" || r.att.status === "late") byArea[area].present++;
     });
-    const employees2 = await db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId));
-    employees2.forEach(e => {
-      const area = e.area;
-      if (!byArea[area]) byArea[area] = { attendanceRate: 0, employeeCount: 0, present: 0, total: 0 };
-      byArea[area].employeeCount++;
+
+    // SQL aggregation for employee count per area
+    const areaCountRows = await db
+      .select({ area: employeesTable.area, cnt: count() })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId))
+      .groupBy(employeesTable.area);
+
+    areaCountRows.forEach(row => {
+      if (!byArea[row.area]) byArea[row.area] = { attendanceRate: 0, employeeCount: 0, present: 0, total: 0 };
+      byArea[row.area].employeeCount = Number(row.cnt);
     });
 
     return res.json({
@@ -118,36 +140,48 @@ router.get("/companies/:companyId/reports/attendance", async (req, res) => {
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/reports/hr", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const employees = await db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId));
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
 
-    const statusGroups: Record<string, number> = {};
-    const areaGroups: Record<string, number> = {};
-    const contractGroups: Record<string, number> = {};
+    // SQL aggregation by status
+    const byStatusRaw = await db
+      .select({ status: employeesTable.status, cnt: count() })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId))
+      .groupBy(employeesTable.status);
 
-    employees.forEach(e => {
-      statusGroups[e.status] = (statusGroups[e.status] ?? 0) + 1;
-      areaGroups[e.area] = (areaGroups[e.area] ?? 0) + 1;
-      contractGroups[e.contractType] = (contractGroups[e.contractType] ?? 0) + 1;
-    });
+    const byAreaRaw = await db
+      .select({ area: employeesTable.area, cnt: count() })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId))
+      .groupBy(employeesTable.area)
+      .orderBy(sql`count(*) DESC`);
+
+    const byContractRaw = await db
+      .select({ contractType: employeesTable.contractType, cnt: count() })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId))
+      .groupBy(employeesTable.contractType);
+
+    const totalEmployees = byStatusRaw.reduce((s, r) => s + Number(r.cnt), 0);
 
     return res.json({
       summary: {
-        totalEmployees: employees.length,
-        byStatus: Object.entries(statusGroups).map(([status, count]) => ({ status, count })),
-        byArea: Object.entries(areaGroups).map(([area, count]) => ({ area, count })).sort((a, b) => b.count - a.count),
-        byContractType: Object.entries(contractGroups).map(([contractType, count]) => ({ contractType, count })),
+        totalEmployees,
+        byStatus: byStatusRaw.map(r => ({ status: r.status, count: Number(r.cnt) })),
+        byArea: byAreaRaw.map(r => ({ area: r.area, count: Number(r.cnt) })),
+        byContractType: byContractRaw.map(r => ({ contractType: r.contractType, count: Number(r.cnt) })),
       },
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

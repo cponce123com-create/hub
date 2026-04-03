@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, employeesTable, attendanceTable, documentsTable, announcementsTable } from "@workspace/db";
+import { db, employeesTable, attendanceTable, documentsTable } from "@workspace/db";
 import { eq, and, ilike, or, count, sql } from "drizzle-orm";
 import { CreateEmployeeBody, UpdateEmployeeBody } from "@workspace/api-zod";
 
@@ -8,6 +8,7 @@ const router = Router();
 router.get("/companies/:companyId/employees", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const { area, status, search } = req.query as Record<string, string>;
     const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
     const offset = parseInt((req.query.offset as string) || "0");
@@ -34,13 +35,14 @@ router.get("/companies/:companyId/employees", async (req, res) => {
     })));
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.post("/companies/:companyId/employees", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const parsed = CreateEmployeeBody.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
@@ -67,57 +69,59 @@ router.post("/companies/:companyId/employees", async (req, res) => {
     return res.status(201).json({ ...employee, startDate: employee.startDate, createdAt: employee.createdAt.toISOString() });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/employees/:employeeId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const employeeId = parseInt(req.params.employeeId);
     if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
 
     const employee = await db.query.employeesTable.findFirst({
       where: and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId)),
     });
-    if (!employee) return res.status(404).json({ error: "Employee not found" });
+    if (!employee) return res.status(404).json({ error: "Empleado no encontrado" });
 
-    // Attendance summary
-    const attendanceRecords = await db.select().from(attendanceTable).where(
-      and(eq(attendanceTable.employeeId, employeeId), eq(attendanceTable.companyId, companyId))
-    );
-    const presentDays = attendanceRecords.filter(a => a.status === "present").length;
-    const absentDays = attendanceRecords.filter(a => a.status === "absent").length;
-    const lateDays = attendanceRecords.filter(a => a.status === "late").length;
-    const hoursWorked = attendanceRecords.reduce((sum, a) => sum + parseFloat(a.hoursWorked || "0"), 0);
+    // Attendance summary via SQL aggregation
+    const attAgg = await db
+      .select({ status: attendanceTable.status, cnt: count(), hours: sql<string>`coalesce(sum(${attendanceTable.hoursWorked}), 0)` })
+      .from(attendanceTable)
+      .where(and(eq(attendanceTable.employeeId, employeeId), eq(attendanceTable.companyId, companyId)))
+      .groupBy(attendanceTable.status);
+
+    let presentDays = 0, absentDays = 0, lateDays = 0, hoursWorked = 0;
+    for (const row of attAgg) {
+      if (row.status === "present") { presentDays = Number(row.cnt); hoursWorked += parseFloat(row.hours); }
+      else if (row.status === "absent" || row.status === "unjustified_absence") absentDays += Number(row.cnt);
+      else if (row.status === "late") { lateDays = Number(row.cnt); hoursWorked += parseFloat(row.hours); }
+      else hoursWorked += parseFloat(row.hours);
+    }
 
     // Document count
     const [{ value: docCount }] = await db.select({ value: count() }).from(documentsTable).where(
       and(eq(documentsTable.employeeId, employeeId), eq(documentsTable.companyId, companyId))
     );
 
-    // Recent announcements
-    const announcements = await db.select().from(announcementsTable).where(eq(announcementsTable.companyId, companyId)).orderBy(sql`${announcementsTable.createdAt} DESC`).limit(3);
-
     return res.json({
       ...employee,
       startDate: employee.startDate,
       createdAt: employee.createdAt.toISOString(),
       attendanceSummary: { presentDays, absentDays, lateDays, hoursWorked },
-      recentAnnouncements: announcements.map(a => ({
-        ...a, readCount: 0, isRead: false, createdAt: a.createdAt.toISOString()
-      })),
       documentCount: Number(docCount),
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.put("/companies/:companyId/employees/:employeeId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const employeeId = parseInt(req.params.employeeId);
     if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
     const parsed = UpdateEmployeeBody.safeParse(req.body);
@@ -132,24 +136,26 @@ router.put("/companies/:companyId/employees/:employeeId", async (req, res) => {
       address: body.address, emergencyContact: body.emergencyContact,
       emergencyPhone: body.emergencyPhone, notes: body.notes,
     }).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId))).returning();
-    if (!employee) return res.status(404).json({ error: "Not found" });
+    if (!employee) return res.status(404).json({ error: "Empleado no encontrado" });
     return res.json({ ...employee, startDate: employee.startDate, createdAt: employee.createdAt.toISOString() });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.delete("/companies/:companyId/employees/:employeeId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const employeeId = parseInt(req.params.employeeId);
     if (isNaN(employeeId)) return res.status(400).json({ error: "ID de empleado inválido" });
-    await db.delete(employeesTable).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId)));
-    return res.json({ message: "Employee deleted" });
+    const [deleted] = await db.delete(employeesTable).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.companyId, companyId))).returning({ id: employeesTable.id });
+    if (!deleted) return res.status(404).json({ error: "Empleado no encontrado" });
+    return res.json({ message: "Empleado eliminado" });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

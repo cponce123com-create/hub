@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, numeric, date } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, numeric, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { companiesTable } from "./companies";
@@ -19,7 +19,9 @@ export const invoicesTable = pgTable("invoices", {
   notes: text("notes"),
   fileUrl: text("file_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("invoices_company_status_idx").on(table.companyId, table.status),
+]);
 
 export const insertInvoiceSchema = createInsertSchema(invoicesTable).omit({ id: true, createdAt: true });
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;

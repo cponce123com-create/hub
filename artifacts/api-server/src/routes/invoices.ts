@@ -8,6 +8,7 @@ const router = Router();
 router.get("/companies/:companyId/invoices", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const { status, supplierId, startDate, endDate } = req.query as Record<string, string>;
     const limit = Math.min(parseInt((req.query.limit as string) || "50"), 200);
     const offset = parseInt((req.query.offset as string) || "0");
@@ -30,18 +31,19 @@ router.get("/companies/:companyId/invoices", async (req, res) => {
     return res.json(invoices.map(({ invoice, supplierName }) => ({
       ...invoice,
       amount: parseFloat(invoice.amount),
-      supplierName: supplierName ?? "Unknown",
+      supplierName: supplierName ?? "Desconocido",
       createdAt: invoice.createdAt.toISOString(),
     })));
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.post("/companies/:companyId/invoices", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const parsed = CreateInvoiceBody.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten().fieldErrors });
@@ -65,18 +67,19 @@ router.post("/companies/:companyId/invoices", async (req, res) => {
     return res.status(201).json({
       ...invoice,
       amount: parseFloat(invoice.amount),
-      supplierName: supplier?.name ?? "Unknown",
+      supplierName: supplier?.name ?? "Desconocido",
       createdAt: invoice.createdAt.toISOString(),
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const invoiceId = parseInt(req.params.invoiceId);
     if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
     const [result] = await db
@@ -84,17 +87,18 @@ router.get("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
       .from(invoicesTable)
       .leftJoin(suppliersTable, eq(invoicesTable.supplierId, suppliersTable.id))
       .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.companyId, companyId)));
-    if (!result) return res.status(404).json({ error: "Not found" });
-    return res.json({ ...result.invoice, amount: parseFloat(result.invoice.amount), supplierName: result.supplierName ?? "Unknown", createdAt: result.invoice.createdAt.toISOString() });
+    if (!result) return res.status(404).json({ error: "Factura no encontrada" });
+    return res.json({ ...result.invoice, amount: parseFloat(result.invoice.amount), supplierName: result.supplierName ?? "Desconocido", createdAt: result.invoice.createdAt.toISOString() });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.put("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const invoiceId = parseInt(req.params.invoiceId);
     if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
     const parsed = UpdateInvoiceBody.safeParse(req.body);
@@ -115,25 +119,27 @@ router.put("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.fileUrl !== undefined) updates.fileUrl = body.fileUrl;
     const [invoice] = await db.update(invoicesTable).set(updates).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.companyId, companyId))).returning();
-    if (!invoice) return res.status(404).json({ error: "Not found" });
+    if (!invoice) return res.status(404).json({ error: "Factura no encontrada" });
     const supplier = await db.query.suppliersTable.findFirst({ where: eq(suppliersTable.id, invoice.supplierId) });
-    return res.json({ ...invoice, amount: parseFloat(invoice.amount), supplierName: supplier?.name ?? "Unknown", createdAt: invoice.createdAt.toISOString() });
+    return res.json({ ...invoice, amount: parseFloat(invoice.amount), supplierName: supplier?.name ?? "Desconocido", createdAt: invoice.createdAt.toISOString() });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.delete("/companies/:companyId/invoices/:invoiceId", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const invoiceId = parseInt(req.params.invoiceId);
     if (isNaN(invoiceId)) return res.status(400).json({ error: "ID de factura inválido" });
-    await db.delete(invoicesTable).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.companyId, companyId)));
-    return res.json({ message: "Invoice deleted" });
+    const [deleted] = await db.delete(invoicesTable).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.companyId, companyId))).returning({ id: invoicesTable.id });
+    if (!deleted) return res.status(404).json({ error: "Factura no encontrada" });
+    return res.json({ message: "Factura eliminada" });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

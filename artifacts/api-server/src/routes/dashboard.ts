@@ -1,94 +1,142 @@
 import { Router } from "express";
 import { db, invoicesTable, employeesTable, attendanceTable, documentsTable, announcementsTable, announcementReadsTable } from "@workspace/db";
-import { eq, and, count, sum, sql, gte, lte } from "drizzle-orm";
+import { eq, and, count, sum, sql, inArray } from "drizzle-orm";
+import { getLast6MonthsLabels } from "../lib/helpers";
 
 const router = Router();
 
 router.get("/companies/:companyId/dashboard/summary", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const userId = req.session?.userId ?? 1;
     const today = new Date().toISOString().split("T")[0];
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1);
+    firstOfMonth.setHours(0, 0, 0, 0);
 
-    // Finance metrics
-    const invoices = await db.select().from(invoicesTable).where(eq(invoicesTable.companyId, companyId));
-    const totalPending = invoices.filter(i => i.status === "pending").reduce((s, i) => s + parseFloat(i.amount), 0);
-    const totalOverdue = invoices.filter(i => i.status === "overdue").reduce((s, i) => s + parseFloat(i.amount), 0);
-    const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + parseFloat(i.amount), 0);
-    const overdueCount = invoices.filter(i => i.status === "overdue").length;
-    const upcomingCount = invoices.filter(i => i.status === "scheduled").length;
+    // Finance metrics via SQL aggregation (no full table scan)
+    const financeAgg = await db
+      .select({ status: invoicesTable.status, total: sum(invoicesTable.amount), cnt: count() })
+      .from(invoicesTable)
+      .where(eq(invoicesTable.companyId, companyId))
+      .groupBy(invoicesTable.status);
 
-    // HR metrics
-    const employees = await db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId));
-    const activeEmployees = employees.filter(e => e.status === "active").length;
-    const onLeaveEmployees = employees.filter(e => e.status === "on_leave").length;
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    const newThisMonth = employees.filter(e => new Date(e.startDate) >= thisMonth).length;
+    let totalPending = 0, totalOverdue = 0, totalPaid = 0, overdueCount = 0, upcomingCount = 0, invoiceCount = 0;
+    for (const row of financeAgg) {
+      const amt = parseFloat(row.total ?? "0");
+      const cnt = Number(row.cnt);
+      invoiceCount += cnt;
+      if (row.status === "pending") { totalPending = amt; }
+      if (row.status === "overdue") { totalOverdue = amt; overdueCount = cnt; }
+      if (row.status === "paid") { totalPaid = amt; }
+      if (row.status === "scheduled") { upcomingCount = cnt; }
+    }
 
-    // Attendance today
-    const todayAttendance = await db.select().from(attendanceTable).where(
-      and(eq(attendanceTable.companyId, companyId), sql`${attendanceTable.date} = ${today}`)
-    );
-    const presentToday = todayAttendance.filter(a => a.status === "present").length;
-    const absentToday = todayAttendance.filter(a => a.status === "absent").length;
-    const lateToday = todayAttendance.filter(a => a.status === "late").length;
+    // HR metrics via SQL aggregation
+    const hrAgg = await db
+      .select({ status: employeesTable.status, cnt: count() })
+      .from(employeesTable)
+      .where(eq(employeesTable.companyId, companyId))
+      .groupBy(employeesTable.status);
+
+    let totalEmployees = 0, activeEmployees = 0, onLeaveEmployees = 0;
+    for (const row of hrAgg) {
+      totalEmployees += Number(row.cnt);
+      if (row.status === "active") activeEmployees = Number(row.cnt);
+      if (row.status === "on_leave") onLeaveEmployees = Number(row.cnt);
+    }
+
+    const [{ newThisMonth }] = await db
+      .select({ newThisMonth: count() })
+      .from(employeesTable)
+      .where(and(eq(employeesTable.companyId, companyId), sql`${employeesTable.startDate} >= ${firstOfMonth.toISOString().split("T")[0]}`));
+
+    // Attendance today — small dataset (single day)
+    const todayAttendance = await db
+      .select({ status: attendanceTable.status, cnt: count() })
+      .from(attendanceTable)
+      .where(and(eq(attendanceTable.companyId, companyId), sql`${attendanceTable.date} = ${today}`))
+      .groupBy(attendanceTable.status);
+
+    let presentToday = 0, absentToday = 0, lateToday = 0;
+    for (const row of todayAttendance) {
+      if (row.status === "present") presentToday = Number(row.cnt);
+      if (row.status === "absent") absentToday = Number(row.cnt);
+      if (row.status === "late") lateToday = Number(row.cnt);
+    }
     const attendanceRate = activeEmployees > 0 ? Math.round(((presentToday + lateToday) / Math.max(1, activeEmployees)) * 100) : 0;
 
     // Documents
-    const [{ value: totalDocuments }] = await db.select({ value: count() }).from(documentsTable).where(eq(documentsTable.companyId, companyId));
+    const [{ totalDocuments }] = await db.select({ totalDocuments: count() }).from(documentsTable).where(eq(documentsTable.companyId, companyId));
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentDocs = await db.select().from(documentsTable).where(and(eq(documentsTable.companyId, companyId), sql`${documentsTable.createdAt} >= ${sevenDaysAgo.toISOString()}`));
+    const [{ recentUploads }] = await db.select({ recentUploads: count() }).from(documentsTable).where(and(eq(documentsTable.companyId, companyId), sql`${documentsTable.createdAt} >= ${sevenDaysAgo.toISOString()}`));
 
-    // Announcements
-    const allAnnouncements = await db.select().from(announcementsTable).where(eq(announcementsTable.companyId, companyId));
-    const urgentCount = allAnnouncements.filter(a => a.priority === "urgent").length;
-    const unreadCount = await Promise.all(allAnnouncements.map(async (a) => {
-      const r = await db.query.announcementReadsTable.findFirst({ where: and(eq(announcementReadsTable.announcementId, a.id), eq(announcementReadsTable.userId, userId)) });
-      return !r;
-    })).then(arr => arr.filter(Boolean).length);
+    // Announcements — single query for urgent + total, then one query for read count
+    const annAgg = await db
+      .select({ priority: announcementsTable.priority, cnt: count(), id: announcementsTable.id })
+      .from(announcementsTable)
+      .where(eq(announcementsTable.companyId, companyId))
+      .groupBy(announcementsTable.priority, announcementsTable.id);
 
-    // Invoice trend (last 6 months)
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthStr = d.toISOString().substring(0, 7);
-      const monthLabel = d.toLocaleString("es-PE", { month: "short", year: "numeric" });
-      const monthInvoices = invoices.filter(inv => inv.issueDate.startsWith(monthStr));
-      months.push({
-        month: monthLabel,
-        paid: monthInvoices.filter(inv => inv.status === "paid").reduce((s, inv) => s + parseFloat(inv.amount), 0),
-        pending: monthInvoices.filter(inv => inv.status === "pending").reduce((s, inv) => s + parseFloat(inv.amount), 0),
-        overdue: monthInvoices.filter(inv => inv.status === "overdue").reduce((s, inv) => s + parseFloat(inv.amount), 0),
-      });
+    const allAnnIds = annAgg.map(r => r.id);
+    let totalActive = 0, urgentCount = 0;
+    for (const row of annAgg) {
+      totalActive++;
+      if (row.priority === "urgent") urgentCount++;
     }
 
+    let unreadCount = totalActive;
+    if (allAnnIds.length > 0) {
+      const [{ readCount }] = await db
+        .select({ readCount: count() })
+        .from(announcementReadsTable)
+        .where(and(eq(announcementReadsTable.userId, userId), inArray(announcementReadsTable.announcementId, allAnnIds)));
+      unreadCount = totalActive - Number(readCount);
+    }
+
+    // Invoice trend (last 6 months) — limited date range query
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const trendInvoices = await db
+      .select({ issueDate: invoicesTable.issueDate, status: invoicesTable.status, amount: invoicesTable.amount })
+      .from(invoicesTable)
+      .where(and(eq(invoicesTable.companyId, companyId), sql`${invoicesTable.issueDate} >= ${sixMonthsAgo.toISOString().split("T")[0]}`));
+
+    const months = getLast6MonthsLabels().map(({ monthStr, label }) => {
+      const monthInvoices = trendInvoices.filter(inv => inv.issueDate.startsWith(monthStr));
+      return {
+        month: label,
+        paid: monthInvoices.filter(i => i.status === "paid").reduce((s, i) => s + parseFloat(i.amount), 0),
+        pending: monthInvoices.filter(i => i.status === "pending").reduce((s, i) => s + parseFloat(i.amount), 0),
+        overdue: monthInvoices.filter(i => i.status === "overdue").reduce((s, i) => s + parseFloat(i.amount), 0),
+      };
+    });
+
     return res.json({
-      finance: { totalPending, totalOverdue, totalPaid, invoiceCount: invoices.length, overdueCount, upcomingCount },
-      hr: { totalEmployees: employees.length, activeEmployees, onLeaveEmployees, newThisMonth },
+      finance: { totalPending, totalOverdue, totalPaid, invoiceCount, overdueCount, upcomingCount },
+      hr: { totalEmployees, activeEmployees, onLeaveEmployees, newThisMonth: Number(newThisMonth) },
       attendance: { presentToday, absentToday, lateToday, attendanceRate },
-      documents: { totalDocuments: Number(totalDocuments), recentUploads: recentDocs.length },
-      announcements: { totalActive: allAnnouncements.length, unreadCount, urgentCount },
+      documents: { totalDocuments: Number(totalDocuments), recentUploads: Number(recentUploads) },
+      announcements: { totalActive, unreadCount, urgentCount },
       invoiceTrend: months,
     });
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/dashboard/alerts", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
-    const today = new Date().toISOString().split("T")[0];
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const alerts: Array<{
       id: string; type: string; title: string; message: string;
       severity: string; entityId: number | null; entityType: string | null; createdAt: string;
     }> = [];
 
-    // Overdue invoices
     const overdueInvoices = await db.select({ id: invoicesTable.id, invoiceNumber: invoicesTable.invoiceNumber, amount: invoicesTable.amount })
       .from(invoicesTable).where(and(eq(invoicesTable.companyId, companyId), eq(invoicesTable.status, "overdue")));
     overdueInvoices.slice(0, 5).forEach(inv => {
@@ -104,7 +152,6 @@ router.get("/companies/:companyId/dashboard/alerts", async (req, res) => {
       });
     });
 
-    // Announcements urgent
     const urgentAnn = await db.select().from(announcementsTable).where(and(eq(announcementsTable.companyId, companyId), eq(announcementsTable.priority, "urgent")));
     urgentAnn.slice(0, 3).forEach(ann => {
       alerts.push({
@@ -122,16 +169,16 @@ router.get("/companies/:companyId/dashboard/alerts", async (req, res) => {
     return res.json(alerts);
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 router.get("/companies/:companyId/dashboard/activity", async (req, res) => {
   try {
     const companyId = parseInt(req.params.companyId);
+    if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const limit = parseInt((req.query as Record<string, string>).limit || "20");
 
-    // Combine recent items from various tables for activity feed
     const recentInvoices = await db.select().from(invoicesTable).where(eq(invoicesTable.companyId, companyId)).orderBy(sql`${invoicesTable.createdAt} DESC`).limit(5);
     const recentEmployees = await db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId)).orderBy(sql`${employeesTable.createdAt} DESC`).limit(5);
     const recentAnn = await db.select().from(announcementsTable).where(eq(announcementsTable.companyId, companyId)).orderBy(sql`${announcementsTable.createdAt} DESC`).limit(5);
@@ -149,7 +196,7 @@ router.get("/companies/:companyId/dashboard/activity", async (req, res) => {
     return res.json(activities.slice(0, limit));
   } catch (err) {
     req.log.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
