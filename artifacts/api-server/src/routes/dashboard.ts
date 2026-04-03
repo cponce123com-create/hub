@@ -179,10 +179,12 @@ router.get("/companies/:companyId/dashboard/activity", async (req, res) => {
     if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const limit = parseInt((req.query as Record<string, string>).limit || "20");
 
-    const recentInvoices = await db.select().from(invoicesTable).where(eq(invoicesTable.companyId, companyId)).orderBy(sql`${invoicesTable.createdAt} DESC`).limit(5);
-    const recentEmployees = await db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId)).orderBy(sql`${employeesTable.createdAt} DESC`).limit(5);
-    const recentAnn = await db.select().from(announcementsTable).where(eq(announcementsTable.companyId, companyId)).orderBy(sql`${announcementsTable.createdAt} DESC`).limit(5);
-    const recentDocs = await db.select().from(documentsTable).where(eq(documentsTable.companyId, companyId)).orderBy(sql`${documentsTable.createdAt} DESC`).limit(5);
+    const [recentInvoices, recentEmployees, recentAnn, recentDocs] = await Promise.all([
+      db.select().from(invoicesTable).where(eq(invoicesTable.companyId, companyId)).orderBy(sql`${invoicesTable.createdAt} DESC`).limit(5),
+      db.select().from(employeesTable).where(eq(employeesTable.companyId, companyId)).orderBy(sql`${employeesTable.createdAt} DESC`).limit(5),
+      db.select().from(announcementsTable).where(eq(announcementsTable.companyId, companyId)).orderBy(sql`${announcementsTable.createdAt} DESC`).limit(5),
+      db.select().from(documentsTable).where(eq(documentsTable.companyId, companyId)).orderBy(sql`${documentsTable.createdAt} DESC`).limit(5),
+    ]);
 
     const activities = [
       ...recentInvoices.map(i => ({ id: `inv-${i.id}`, type: "invoice_created", action: "Factura registrada", entityName: `#${i.invoiceNumber}`, performedBy: "Admin", module: "finance", createdAt: i.createdAt.toISOString() })),

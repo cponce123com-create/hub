@@ -84,59 +84,96 @@ router.get("/companies/:companyId/reports/attendance", async (req, res) => {
     if (isNaN(companyId)) return res.status(400).json({ error: "ID de empresa inválido" });
     const { startDate, endDate, employeeId } = req.query as Record<string, string>;
 
-    const conditions = [eq(attendanceTable.companyId, companyId)];
-    if (startDate) conditions.push(sql`${attendanceTable.date} >= ${startDate}`);
-    if (endDate) conditions.push(sql`${attendanceTable.date} <= ${endDate}`);
-    if (employeeId) conditions.push(eq(attendanceTable.employeeId, parseInt(employeeId)));
+    const attConditions = [eq(attendanceTable.companyId, companyId)];
+    if (startDate) attConditions.push(sql`${attendanceTable.date} >= ${startDate}`);
+    if (endDate) attConditions.push(sql`${attendanceTable.date} <= ${endDate}`);
+    if (employeeId) attConditions.push(eq(attendanceTable.employeeId, parseInt(employeeId)));
 
-    const records = await db
-      .select({ att: attendanceTable, firstName: employeesTable.firstName, lastName: employeesTable.lastName, area: employeesTable.area })
-      .from(attendanceTable)
-      .leftJoin(employeesTable, eq(attendanceTable.employeeId, employeesTable.id))
-      .where(and(...conditions));
+    // Summary totals — full SQL aggregation, no JS reduce
+    const [summaryRaw, byEmployeeRaw, byAreaAttRaw, byAreaEmpRaw] = await Promise.all([
+      // Global summary: total rows, hours worked, overtime, and present count via FILTER
+      db.select({
+        totalDays: count(),
+        totalHoursWorked: sql<string>`coalesce(sum(${attendanceTable.hoursWorked}), 0)`,
+        totalOvertime: sql<string>`coalesce(sum(${attendanceTable.overtime}), 0)`,
+        presentCount: sql<string>`count(*) filter (where ${attendanceTable.status} in ('present','late'))`,
+      })
+        .from(attendanceTable)
+        .where(and(...attConditions)),
 
-    const totalDays = records.length;
-    const presentCount = records.filter(r => r.att.status === "present" || r.att.status === "late").length;
-    const avgAttendanceRate = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
-    const totalHoursWorked = records.reduce((s, r) => s + parseFloat(r.att.hoursWorked || "0"), 0);
-    const totalOvertime = records.reduce((s, r) => s + parseFloat(r.att.overtime || "0"), 0);
+      // Per-employee breakdown via GROUP BY employee + status
+      db.select({
+        employeeId: attendanceTable.employeeId,
+        firstName: employeesTable.firstName,
+        lastName: employeesTable.lastName,
+        area: employeesTable.area,
+        status: attendanceTable.status,
+        cnt: count(),
+        hours: sql<string>`coalesce(sum(${attendanceTable.hoursWorked}), 0)`,
+      })
+        .from(attendanceTable)
+        .leftJoin(employeesTable, eq(attendanceTable.employeeId, employeesTable.id))
+        .where(and(...attConditions))
+        .groupBy(attendanceTable.employeeId, employeesTable.firstName, employeesTable.lastName, employeesTable.area, attendanceTable.status),
 
-    const byEmployee: Record<string, { employeeName: string; area: string; presentDays: number; absentDays: number; lateDays: number; hoursWorked: number }> = {};
-    records.forEach(r => {
-      const key = `${r.att.employeeId}`;
-      const name = r.firstName ? `${r.firstName} ${r.lastName}` : "Desconocido";
-      if (!byEmployee[key]) byEmployee[key] = { employeeName: name, area: r.area ?? "", presentDays: 0, absentDays: 0, lateDays: 0, hoursWorked: 0 };
-      if (r.att.status === "present") byEmployee[key].presentDays++;
-      else if (r.att.status === "absent" || r.att.status === "unjustified_absence") byEmployee[key].absentDays++;
-      else if (r.att.status === "late") byEmployee[key].lateDays++;
-      byEmployee[key].hoursWorked += parseFloat(r.att.hoursWorked || "0");
-    });
+      // Per-area attendance aggregation
+      db.select({
+        area: employeesTable.area,
+        total: count(),
+        present: sql<string>`count(*) filter (where ${attendanceTable.status} in ('present','late'))`,
+      })
+        .from(attendanceTable)
+        .leftJoin(employeesTable, eq(attendanceTable.employeeId, employeesTable.id))
+        .where(and(...attConditions))
+        .groupBy(employeesTable.area),
 
-    const byArea: Record<string, { attendanceRate: number; employeeCount: number; present: number; total: number }> = {};
-    records.forEach(r => {
-      const area = r.area ?? "Sin área";
-      if (!byArea[area]) byArea[area] = { attendanceRate: 0, employeeCount: 0, present: 0, total: 0 };
-      byArea[area].total++;
-      if (r.att.status === "present" || r.att.status === "late") byArea[area].present++;
-    });
+      // Employee headcount per area (denominator)
+      db.select({ area: employeesTable.area, cnt: count() })
+        .from(employeesTable)
+        .where(eq(employeesTable.companyId, companyId))
+        .groupBy(employeesTable.area),
+    ]);
 
-    // SQL aggregation for employee count per area
-    const areaCountRows = await db
-      .select({ area: employeesTable.area, cnt: count() })
-      .from(employeesTable)
-      .where(eq(employeesTable.companyId, companyId))
-      .groupBy(employeesTable.area);
+    const { totalDays, totalHoursWorked, totalOvertime, presentCount } = summaryRaw[0];
+    const totalDaysN = Number(totalDays);
+    const presentCountN = Number(presentCount);
+    const avgAttendanceRate = totalDaysN > 0 ? Math.round((presentCountN / totalDaysN) * 100) : 0;
 
-    areaCountRows.forEach(row => {
-      if (!byArea[row.area]) byArea[row.area] = { attendanceRate: 0, employeeCount: 0, present: 0, total: 0 };
-      byArea[row.area].employeeCount = Number(row.cnt);
+    // Build per-employee map from GROUP BY rows
+    const byEmployeeMap: Record<string, { employeeName: string; area: string; presentDays: number; absentDays: number; lateDays: number; hoursWorked: number }> = {};
+    for (const row of byEmployeeRaw) {
+      const key = String(row.employeeId);
+      const name = row.firstName ? `${row.firstName} ${row.lastName ?? ""}`.trim() : "Desconocido";
+      if (!byEmployeeMap[key]) byEmployeeMap[key] = { employeeName: name, area: row.area ?? "", presentDays: 0, absentDays: 0, lateDays: 0, hoursWorked: 0 };
+      const cnt = Number(row.cnt);
+      if (row.status === "present") byEmployeeMap[key].presentDays += cnt;
+      else if (row.status === "absent" || row.status === "unjustified_absence") byEmployeeMap[key].absentDays += cnt;
+      else if (row.status === "late") byEmployeeMap[key].lateDays += cnt;
+      byEmployeeMap[key].hoursWorked += parseFloat(row.hours);
+    }
+
+    // Build per-area map from GROUP BY rows
+    const empCountByArea = Object.fromEntries(byAreaEmpRaw.map(r => [r.area, Number(r.cnt)]));
+    const byArea = byAreaAttRaw.map(row => {
+      const total = Number(row.total);
+      const present = Number(row.present);
+      return {
+        area: row.area ?? "Sin área",
+        attendanceRate: total > 0 ? Math.round((present / total) * 100) : 0,
+        employeeCount: empCountByArea[row.area ?? ""] ?? 0,
+      };
     });
 
     return res.json({
       period: `${startDate ?? "all"} - ${endDate ?? "all"}`,
-      summary: { totalDays, avgAttendanceRate, totalHoursWorked, totalOvertime },
-      byEmployee: Object.values(byEmployee),
-      byArea: Object.entries(byArea).map(([area, data]) => ({ area, attendanceRate: data.total > 0 ? Math.round((data.present / data.total) * 100) : 0, employeeCount: data.employeeCount })),
+      summary: {
+        totalDays: totalDaysN,
+        avgAttendanceRate,
+        totalHoursWorked: parseFloat(totalHoursWorked),
+        totalOvertime: parseFloat(totalOvertime),
+      },
+      byEmployee: Object.values(byEmployeeMap),
+      byArea,
     });
   } catch (err) {
     req.log.error(err);

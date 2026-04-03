@@ -25,6 +25,7 @@ export const employeesTable = pgTable("employees", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("employees_company_status_idx").on(table.companyId, table.status),
+  index("employees_company_firstname_idx").on(table.companyId, table.firstName),
 ]);
 
 export const insertEmployeeSchema = createInsertSchema(employeesTable).omit({ id: true, createdAt: true });
